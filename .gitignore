@@ -1,2 +1,3 @@
 ./cloudy 
 ./files_altering_checking
+*.ipynb_checkpoints
