@@ -1,13 +1,16 @@
 import sys
 sys.path.append("/home/m/murray/dtolgay/scratch")
+from tools import constants
 
 import numpy as np 
 import pandas as pd 
 import os
+
 from scipy.spatial import KDTree
+from scipy.interpolate import LinearNDInterpolator
+
 from time import time 
 
-from tools import constants
 
 # Global variables
 epsilon = 1e-30
@@ -33,7 +36,7 @@ def main(galaxy_name, galaxy_type, redshift):
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_nearestCloudyRun_intensity2Luminosity.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_linearNDInterpolator_intensity2Luminosity.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -64,6 +67,7 @@ def main(galaxy_name, galaxy_type, redshift):
         "o3_5006",
         "o3_4958",        
     ]
+
 
     ################ Read training data particles 
 
@@ -275,7 +279,8 @@ def read_training_data(base_file_dir, main_directory, file_name, base_line_names
         print(f"All of the intensity values are non-negative. Continuing...")
     else:
         # Set values smaller or equal to zero to epsilon in specified columns
-        unprocessed_train_data[line_names] = unprocessed_train_data[line_names].applymap(lambda x: epsilon if x <= 0 else x)
+        for col in line_names:
+            unprocessed_train_data[col] = unprocessed_train_data[col].map(lambda x: epsilon if x <= 0 else x)
         print(f"Not all intensities are are non-negative. Setting them to epsilon")
 
 
@@ -311,6 +316,19 @@ def read_training_data(base_file_dir, main_directory, file_name, base_line_names
 
 
     return train_data_df, line_names_with_log
+
+
+def prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log):
+    # Query the tree for neighbors
+    distances, indices = tree.query(gas[gas_data_column_names].to_numpy(), k=k)
+    
+    # Set up linearNDInterpolator
+    linearNDInterp = LinearNDInterpolator(
+        points=train_data_df.iloc[indices][train_data_column_names].to_numpy(),
+        values=train_data_df.iloc[indices][line_names_with_log].to_numpy()
+    )
+    
+    return linearNDInterp
 
 def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
 
@@ -349,21 +367,38 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
             if (gas['index'] % int(1e5) == 1):
                 print(f"{gas['index']} finished. Left {len(gas_particles_df) - gas['index']}")
 
-        # Find the closest train_data 
-        distances, indices = tree.query(gas[gas_data_column_names].to_numpy(), k=1) 
+        # List of k values to try in order
+        k_values = [50, 100, 500, 1000, 2000, 3000, 5000, int(1e4)]
 
-        # Calculate the Luminosity    
-        log_intensities = train_data_df.iloc[indices][line_names_with_log].to_numpy()
-        intensities = 10**log_intensities
+        linearNDInterp = None
+        for k in k_values:
+            try:
+                # Try to query and interpolate with the current k value
+                linearNDInterp = prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log)
+                break  # Break out of the loop if successful
+            except Exception as e:
+                # If it fails with the current k, continue to the next one
+                continue
+                    
+        if linearNDInterp == None:
+            print(f"Error: Linear Interpolator is None for index: {gas['index']}")
+            exit(99)
+
+        # Interpolate
+        interpolated_intensities = 10**linearNDInterp(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
+
         # Calculate area 
         area = gas['mass'] * constants.M_sun2gr / (gas['density'] * (10**gas[scale_length[0]] * constants.pc2cm)) 
-        luminosities = intensities * area
+
+        # Calculate luminosity
+        luminosities = interpolated_intensities * area
                 
         gas_indices_luminosities.append(
             np.concatenate(([gas['index']], luminosities))
         )
         
-    return gas_indices_luminosities
+    return gas_indices_luminosities 
+
 
 def meters_to_Ghz_calculator(wavelength_in_meters):
     c = 299792458  # m/s
