@@ -1,6 +1,6 @@
 ./cloudy 
 ./files_altering_checking
-*.ipynb_checkpoints
+**/.ipynb_checkpoints/
 
 *.out
 *.err

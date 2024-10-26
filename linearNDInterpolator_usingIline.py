@@ -10,6 +10,7 @@ from scipy.spatial import KDTree
 from scipy.interpolate import LinearNDInterpolator
 
 from time import time 
+from concurrent.futures import ProcessPoolExecutor
 
 
 # Global variables
@@ -19,7 +20,7 @@ mu = 1.38 # Krumholz and Gnedin
 
 
 
-def main(galaxy_name, galaxy_type, redshift):
+def main(galaxy_name, galaxy_type, redshift, max_workers):
 
     start = time()
 
@@ -111,15 +112,40 @@ def main(galaxy_name, galaxy_type, redshift):
 
     # train_data_file_paths = [f"{train_data_base_file_dir_test}/{train_data_main_director_test}"]
 
-    ################
-
-    # Calculate the line luminosities from intensity data 
-    gas_indices_luminosities = calculate_Lline(
-        gas_particles_df, 
-        train_data_df, 
-        line_names_with_log
+    # Split dataframe into several dataframes to run the parallely. 
+    gas_particles_df_chunks = split_dataframe(
+            df=gas_particles_df,
+            max_workers=max_workers, 
         )
     
+    ################
+
+    # # Calculate the line luminosities from intensity data 
+    # gas_indices_luminosities = []
+    # for gas_particles_df_chunk in gas_particles_df_chunks:
+    #     gas_indices_luminosities.append(
+    #         calculate_Lline(
+    #             gas_particles_df_chunk, 
+    #             train_data_df, 
+    #             line_names_with_log
+    #         )
+    #     )
+
+    # Calculate the line luminosities from intensity data in parallel
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(calculate_Lline, gas_particles_df_chunk, train_data_df, line_names_with_log)
+            for gas_particles_df_chunk in gas_particles_df_chunks
+        ]
+        gas_indices_luminosities_chunks = [future.result() for future in futures]        
+        
+    # Flatten the array
+    print("Flattening the array")
+    gas_indices_luminosities = [] 
+    for interpolated_value_for_gas_particles_in_the_chunk in gas_indices_luminosities_chunks:
+        for interpolated_value_for_gas_particle in interpolated_value_for_gas_particles_in_the_chunk:
+            gas_indices_luminosities.append(interpolated_value_for_gas_particle)
+            
     # Create df of the retuned luminosities 
     log_line_names = []
     for line_name in base_line_names:
@@ -127,7 +153,8 @@ def main(galaxy_name, galaxy_type, redshift):
 
     column_names = ['index'] + log_line_names
 
-    gas_indices_luminosities_df = pd.DataFrame(gas_indices_luminosities, columns=column_names)
+    gas_indices_luminosities_df = pd.DataFrame(gas_indices_luminosities, columns=column_names).sort_values(by="index", ascending=True)
+
 
     # Change the unit of the calculated CO luminosities 
     CO_lines_and_wavelengths = {
@@ -317,6 +344,15 @@ def read_training_data(base_file_dir, main_directory, file_name, base_line_names
 
     return train_data_df, line_names_with_log
 
+def split_dataframe(df, max_workers):
+    # Create different chunks of of dataframe to run them parallely
+    n = len(df)
+    chunk_size = -(
+        -n // max_workers
+    )  # Ceiling division to ensure all rows are included
+
+    # Split the dataframe into chunks and store in an array
+    return [df[i : i + chunk_size] for i in range(0, n, chunk_size)]
 
 def prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log):
     # Query the tree for neighbors
@@ -398,7 +434,6 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
         )
         
     return gas_indices_luminosities 
-
 
 def meters_to_Ghz_calculator(wavelength_in_meters):
     c = 299792458  # m/s
@@ -496,5 +531,6 @@ if __name__ == "__main__":
     galaxy_name = sys.argv[1]
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
+    max_workers = int(sys.argv[4]) 
 
-    main(galaxy_name, galaxy_type, redshift)
+    main(galaxy_name, galaxy_type, redshift, max_workers)
