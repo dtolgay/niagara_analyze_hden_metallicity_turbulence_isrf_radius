@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 from scipy.spatial import KDTree
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 
 from time import time 
 from concurrent.futures import ProcessPoolExecutor
@@ -354,17 +354,26 @@ def split_dataframe(df, max_workers):
     # Split the dataframe into chunks and store in an array
     return [df[i : i + chunk_size] for i in range(0, n, chunk_size)]
 
-def prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log):
+def prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log, interpolator="LinearNDInterpolator"):
     # Query the tree for neighbors
     distances, indices = tree.query(gas[gas_data_column_names].to_numpy(), k=k)
     
     # Set up linearNDInterpolator
-    linearNDInterp = LinearNDInterpolator(
-        points=train_data_df.iloc[indices][train_data_column_names].to_numpy(),
-        values=train_data_df.iloc[indices][line_names_with_log].to_numpy()
-    )
+    if interpolator == "LinearNDInterpolator":  
+        interpolator = LinearNDInterpolator(
+            points=train_data_df.iloc[indices][train_data_column_names].to_numpy(),
+            values=train_data_df.iloc[indices][line_names_with_log].to_numpy()
+        )
+    elif interpolator == "NearestNDInterpolator":
+        interpolator = NearestNDInterpolator(
+            train_data_df.iloc[indices][train_data_column_names].to_numpy(),
+            train_data_df.iloc[indices][line_names_with_log].to_numpy()
+        )
+    else:
+        return None
     
-    return linearNDInterp
+    return interpolator
+
 
 def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
 
@@ -406,22 +415,42 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
         # List of k values to try in order
         k_values = [50, 100, 500, 1000, 2000, 3000, 5000, int(1e4)]
 
-        linearNDInterp = None
         for k in k_values:
             try:
                 # Try to query and interpolate with the current k value
-                linearNDInterp = prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log)
-                break  # Break out of the loop if successful
+                interpolator = prepare_interpolator(
+                        k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log, interpolator="LinearNDInterpolator"
+                    )
+                
+                # Interpolate to check if there are NaN values 
+                interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
+
+                # If there exist any NaN change iterate to the next k value:
+                if np.isnan(interpolated_intensities).any(): 
+                    if k < 300:
+                        continue
+                    else:
+                        interpolator = prepare_interpolator(
+                                k, 
+                                gas, 
+                                gas_data_column_names, 
+                                tree, 
+                                train_data_df, 
+                                train_data_column_names, 
+                                line_names_with_log,
+                                interpolator="NearestNDInterpolator"
+                            )
+                        interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
+                        break
+                else: 
+                    break  # Break out of the loop if and there exist no NaN values 
             except Exception as e:
                 # If it fails with the current k, continue to the next one
                 continue
                     
-        if linearNDInterp == None:
-            print(f"Error: Linear Interpolator is None for index: {gas['index']}")
+        if interpolator == None:
+            print(f"Error: interpolator is None for index: {gas['index']}")
             exit(99)
-
-        # Interpolate
-        interpolated_intensities = 10**linearNDInterp(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
 
         # Calculate area 
         area = gas['mass'] * constants.M_sun2gr / (gas['density'] * (10**gas[scale_length[0]] * constants.pc2cm)) 
