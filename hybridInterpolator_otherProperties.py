@@ -1,23 +1,18 @@
+from concurrent.futures import ProcessPoolExecutor
 import sys
 sys.path.append("/home/m/murray/dtolgay/scratch")
-from tools import constants
 
 import numpy as np 
 import pandas as pd 
 import os
-
 from scipy.spatial import KDTree
+from time import time 
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 
-from time import time 
-from concurrent.futures import ProcessPoolExecutor
-
+from tools import constants
 
 # Global variables
 epsilon = 1e-30
-# mu = 1.2
-mu = 1.38 # Krumholz and Gnedin 
-
 
 
 def main(galaxy_name, galaxy_type, redshift, max_workers):
@@ -37,7 +32,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_linearNDInterpolator_intensity2Luminosity.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/otherProperties_nearestCloudyRun.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -50,146 +45,93 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     # Read gas particles 
     gas_particles_df, gas_column_names = read_cloudy_gas_particles(cloudy_gas_particles_file_directory)
 
-    base_line_names = [
-        "ly_alpha",
-        "h_alpha",
-        "h_beta",
-        "co_10",
-        "co_21",
-        "co_32",
-        "co_43",
-        "co_54",
-        "co_65",
-        "co_76",
-        "co_87",
-        "13co",
-        "c2",
-        "o3_88",
-        "o3_5006",
-        "o3_4958",        
-    ]
-
-
-    ################ Read training data particles 
-
-    # 1st set of run
-    train_data_base_file_dir_1 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
-    train_data_main_directory_1 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_above_minus_2" 
-
-    train_data_df_1, line_names_with_log = read_training_data(
-        base_file_dir = train_data_base_file_dir_1, 
-        main_directory = train_data_main_directory_1, 
-        file_name = "I_line_values_without_reversing.txt", 
-        base_line_names = base_line_names
-    )    
-
-    # 2nd set of run
-    train_data_base_file_dir_2 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
-    train_data_main_directory_2 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_minus2_minus3point5" 
-
-    train_data_df_2, line_names_with_log = read_training_data(
-        base_file_dir = train_data_base_file_dir_2, 
-        main_directory = train_data_main_directory_2, 
-        file_name = "I_line_values_without_reversing.txt", 
-        base_line_names = base_line_names
-    )    
-
-    train_data_file_paths = [f"{train_data_base_file_dir_1}/{train_data_main_directory_1}", f"{train_data_base_file_dir_2}/{train_data_main_directory_2}"]
-
-    # Concattanete two dataframes 
-    train_data_df = pd.concat([train_data_df_2, train_data_df_1])
-
-    ########
-
-    # train_data_base_file_dir_test = "/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/"
-    # train_data_main_director_test = "m12f_res7100_md_test"
-    # train_data_df, line_names_with_log = read_training_data(
-    #     base_file_dir = train_data_base_file_dir_test, 
-    #     main_directory = train_data_main_director_test, 
-    #     file_name = "I_line_values_without_reversing.txt", 
-    #     base_line_names = base_line_names
-    # )   
-
-    # train_data_file_paths = [f"{train_data_base_file_dir_test}/{train_data_main_director_test}"]
-
     # Split dataframe into several dataframes to run the parallely. 
     gas_particles_df_chunks = split_dataframe(
             df=gas_particles_df,
             max_workers=max_workers, 
         )
     
-    ################
+    ################ Read training data particles 
+    properties_column_names = [
+        "fh2",
+        "fCO",
+    ]
+    
+    # 1st set of run
+    train_data_base_file_dir_1 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
+    train_data_main_directory_1 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_above_minus_2" 
 
-    # # Calculate the line luminosities from intensity data 
-    # gas_indices_luminosities = []
-    # for gas_particles_df_chunk in gas_particles_df_chunks:
-    #     gas_indices_luminosities.append(
-    #         calculate_Lline(
-    #             gas_particles_df_chunk, 
-    #             train_data_df, 
-    #             line_names_with_log
-    #         )
-    #     )
+    train_data_df_1, properties_column_names_with_log = read_training_data(
+        base_file_dir = train_data_base_file_dir_1, 
+        main_directory = train_data_main_directory_1, 
+        file_name = "other_properties.csv", 
+        properties_column_names = properties_column_names,
+    )    
 
-    # Calculate the line luminosities from intensity data in parallel
+    # 2nd set of run
+    train_data_base_file_dir_2 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
+    train_data_main_directory_2 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_minus2_minus3point5" 
+
+    train_data_df_2, properties_column_names_with_log = read_training_data(
+        base_file_dir = train_data_base_file_dir_2, 
+        main_directory = train_data_main_directory_2, 
+        file_name = "other_properties.csv", 
+        properties_column_names = properties_column_names,
+    )    
+
+
+    # Concattanete two dataframes 
+    train_data_df = pd.concat([train_data_df_2, train_data_df_1])
+    train_data_file_paths = [f"{train_data_base_file_dir_1}/{train_data_main_directory_1}", f"{train_data_base_file_dir_2}/{train_data_main_directory_2}"]
+
+    # train_data_file_paths = [f"{train_data_base_file_dir_1}/{train_data_main_directory_1}"]
+    # train_data_df = train_data_df_1
+
+
+    ########
+    # Interpolate
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(calculate_Lline, gas_particles_df_chunk, train_data_df, line_names_with_log)
+            executor.submit(interpolate_otherProperties, gas_particles_df_chunk, train_data_df, properties_column_names_with_log)
             for gas_particles_df_chunk in gas_particles_df_chunks
         ]
-        gas_indices_luminosities_chunks = [future.result() for future in futures]        
-        
+        gas_indices_interpolatedValues_chunks = [future.result() for future in futures]       
+
     # Flatten the array
     print("Flattening the array")
-    gas_indices_luminosities = [] 
-    for interpolated_value_for_gas_particles_in_the_chunk in gas_indices_luminosities_chunks:
+    gas_indices_interpolatedValues = [] 
+    for interpolated_value_for_gas_particles_in_the_chunk in gas_indices_interpolatedValues_chunks:
         for interpolated_value_for_gas_particle in interpolated_value_for_gas_particles_in_the_chunk:
-            gas_indices_luminosities.append(interpolated_value_for_gas_particle)
-            
-    # Create df of the retuned luminosities 
-    log_line_names = []
-    for line_name in base_line_names:
-        log_line_names.append(f"L_{line_name}")
-
-    column_names = ['index'] + log_line_names
-
-    gas_indices_luminosities_df = pd.DataFrame(gas_indices_luminosities, columns=column_names).sort_values(by="index", ascending=True)
+            gas_indices_interpolatedValues.append(interpolated_value_for_gas_particle)
+                
 
 
-    # Change the unit of the calculated CO luminosities 
-    CO_lines_and_wavelengths = {
-        "L_co_10": 2600.05e-6,  # meter
-        "L_co_21": 1300.05e-6,
-        "L_co_32": 866.727e-6,
-        "L_co_43": 650.074e-6,
-        "L_co_54": 520.08e-6,
-        "L_co_65": 433.438e-6,
-        "L_co_76": 371.549e-6,
-        "L_co_87": 325.137e-6,
-        "L_13co": 2719.67e-6,
-    }
-    
-    gas_indices_luminosities_df = change_unit_of_CO_emission(
-        gas_indices_luminosities_df=gas_indices_luminosities_df,
-        lines_and_wavelengths=CO_lines_and_wavelengths,
-    )
+    # gas_indices_interpolatedValues = interpolate_otherProperties(
+    #     gas_particles_df=gas_particles_df, 
+    #     train_data_df=train_data_df, 
+    #     properties_column_names_with_log=properties_column_names_with_log
+    #     )
 
+    column_names = ['index'] + properties_column_names # Now this is not log because I took the exponential when I am interpolating 
+    gas_indices_Yinterpolated = pd.DataFrame(gas_indices_interpolatedValues, columns=column_names)
+
+    ### 
     # Merge two dataframes
-    if len(gas_indices_luminosities_df) == len(gas_particles_df):
+    if len(gas_indices_Yinterpolated) == len(gas_particles_df):
         print("Lengths of luminosities and gas particles are the same. Merging can be done.")
-        merged_df = gas_particles_df.merge(gas_indices_luminosities_df, how='left', on='index', validate='one_to_one') # Check if it is one to one 
+        merged_df = gas_particles_df.merge(gas_indices_Yinterpolated, how='left', on='index', validate='one_to_one') # Check if it is one to one 
     else:
         print("Lengths of luminosities and gas particles are NOT same. Exiting with code 3...")
-        exit(3)
+        exit(3) 
 
     # Write to a file
     write_to_a_file(
         write_file_path = write_file_path, 
         train_data_file_paths = train_data_file_paths,
         gas_column_names = gas_column_names, 
-        base_line_names = base_line_names, 
+        properties_column_names = properties_column_names, 
         merged_df = merged_df
-        )
+        )            
     
     end = time()
 
@@ -197,7 +139,6 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
 
     return 0
 
-######## Functions
 
 def read_cloudy_gas_particles(cloudy_gas_particles_file_directory):
     # Define the column names based on your description
@@ -268,62 +209,28 @@ def read_cloudy_gas_particles(cloudy_gas_particles_file_directory):
     
     return gas_particles_df, gas_column_names 
 
-def read_training_data(base_file_dir, main_directory, file_name, base_line_names):
+def read_training_data(base_file_dir, main_directory, file_name, properties_column_names):
 
     #################################################
     # Get the trained data
-
     print("Training data is started to be read.")
-
-    line_names = []
-    for line_name in base_line_names:
-        line_names.append(f"I_{line_name}")
-
-    column_names = [
-        "log_metallicity",
-        "log_hden",
-        "log_turbulence",
-        "log_isrf",
-        "log_radius",
-    ]  + line_names
 
     # Read file
     path2TrainingData = f"{base_file_dir}/{main_directory}/{file_name}"
-    unprocessed_train_data = pd.DataFrame(
-        np.loadtxt(fname=path2TrainingData),
-        columns=column_names,
-    )
+    unprocessed_train_data = pd.read_csv(path2TrainingData) 
 
     ############## Process the cloudy data 
+    # Take the log of the properties 
+    properties_column_names_with_log = []
+    for property in properties_column_names:
+        unprocessed_train_data[property] += epsilon # Add a very small number 
+        unprocessed_train_data[f"log_{property}"] = np.log10(unprocessed_train_data[property])
+        properties_column_names_with_log.append(f"log_{property}")
+
     # Discard all nan values 
     print("Dropping NaN containing lines")
-    unprocessed_train_data = unprocessed_train_data.dropna()
-
-    # Check if all intensities are positive and set 0 values to epsilon
-    print(f"Check if all intensities are positive. Then set 0 values to {epsilon}")
-    all_positive_columns = (unprocessed_train_data[line_names] >= 0).all().all()
-    if all_positive_columns:
-        print(f"All of the intensity values are non-negative. Continuing...")
-    else:
-        # Set values smaller or equal to zero to epsilon in specified columns
-        for col in line_names:
-            unprocessed_train_data[col] = unprocessed_train_data[col].map(lambda x: epsilon if x <= 0 else x)
-        print(f"Not all intensities are are non-negative. Setting them to epsilon")
-
-
-    line_names_with_log = []
-    for column in line_names:
-        unprocessed_train_data[f"log_{column}"] = np.log10(unprocessed_train_data[column])
-        line_names_with_log.append(f"log_{column}") # Store the new line names
-
-
-    train_data_df = unprocessed_train_data[[
-        "log_metallicity",
-        "log_hden",
-        "log_turbulence",
-        "log_isrf",
-        "log_radius",
-        ] + line_names_with_log]  # Only use the log of the line luminosities    
+    processed_train_data = unprocessed_train_data.dropna()        
+    train_data_df = processed_train_data.drop(properties_column_names, axis=1) # Drop the columns which log is not taken.
 
     # # Double check if there is any NaN
     # if (np.isnan(train_data_df.values).any()):
@@ -336,13 +243,13 @@ def read_training_data(base_file_dir, main_directory, file_name, base_line_names
     ######
     # Add the column density data to interpolate that too 
     train_data_df['log_column_density'] = np.log10(
-        (10**train_data_df['log_hden'] / constants.cm2pc**3) * (10**train_data_df['log_radius']) * (mu * constants.proton_mass * constants.kg2Msolar)
+        (10**train_data_df['log_hden'] / constants.cm2pc**3) * (10**train_data_df['log_radius']) * (constants.mu_h * constants.proton_mass * constants.kg2Msolar)
     ) # Msolar / pc^2
 
     print(f"{path2TrainingData} is read.")
 
 
-    return train_data_df, line_names_with_log
+    return train_data_df, properties_column_names_with_log
 
 def split_dataframe(df, max_workers):
     # Create different chunks of of dataframe to run them parallely
@@ -354,7 +261,7 @@ def split_dataframe(df, max_workers):
     # Split the dataframe into chunks and store in an array
     return [df[i : i + chunk_size] for i in range(0, n, chunk_size)]
 
-def prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log, interpolator="LinearNDInterpolator"):
+def prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, target_column_names, interpolator="LinearNDInterpolator"):
     # Query the tree for neighbors
     distances, indices = tree.query(gas[gas_data_column_names].to_numpy(), k=k)
     
@@ -362,35 +269,34 @@ def prepare_interpolator(k, gas, gas_data_column_names, tree, train_data_df, tra
     if interpolator == "LinearNDInterpolator":  
         interpolator = LinearNDInterpolator(
             points=train_data_df.iloc[indices][train_data_column_names].to_numpy(),
-            values=train_data_df.iloc[indices][line_names_with_log].to_numpy()
+            values=train_data_df.iloc[indices][target_column_names].to_numpy()
         )
     elif interpolator == "NearestNDInterpolator":
         interpolator = NearestNDInterpolator(
             train_data_df.iloc[indices][train_data_column_names].to_numpy(),
-            train_data_df.iloc[indices][line_names_with_log].to_numpy()
+            train_data_df.iloc[indices][target_column_names].to_numpy()
         )
     else:
         return None
     
     return interpolator
 
-def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
+def interpolate_otherProperties(gas_particles_df, train_data_df, properties_column_names_with_log):
 
-    print("I am in the calculate_Lline")
-    
+    print("I am in the interpolate_otherProperties")
+
     train_data_column_names = [
         "log_metallicity",
         "log_hden",
         "log_turbulence",
         "log_isrf",
         "log_radius",    
-    ]
+    ]    
 
     tree = KDTree(
         train_data_df[train_data_column_names].to_numpy(),
     ) # Create a tree for the training data
-    
-    
+
     scale_length = [
         "log_average_sobolev_smoothingLength"
     ]
@@ -402,7 +308,6 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
         "log_isrf",      
     ] + scale_length
 
-    
     gas_indices_luminosities = []
     
     intial_index = gas_particles_df.iloc[0]['index']
@@ -412,86 +317,68 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
                 print(f"{gas['index']} finished. Left {len(gas_particles_df) - gas['index']}")
 
         # List of k values to try in order
-        k_values = [50, 100, 500, 1000, 2000, 3000, 5000, int(1e4)]
+        k_values = [50, 100, 500, 1000, 2000, 3000, 5000, int(1e4)]        
 
-        for k in k_values:
+        for k in k_values: 
             try:
-                # Try to query and interpolate with the current k value
+                # Get the interpolator 
                 interpolator = prepare_interpolator(
-                        k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log, interpolator="LinearNDInterpolator"
+                        k = k, 
+                        gas = gas, 
+                        gas_data_column_names = gas_data_column_names, 
+                        tree = tree, 
+                        train_data_df = train_data_df, 
+                        train_data_column_names = train_data_column_names, 
+                        target_column_names = properties_column_names_with_log, 
+                        interpolator="LinearNDInterpolator"
                     )
                 
-                # Interpolate to check if there are NaN values 
-                interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
+                # Check if there are NaN values 
+                interpolated_Y_values = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
 
                 # If there exist any NaN change iterate to the next k value:
-                if np.isnan(interpolated_intensities).any(): 
+                if np.isnan(interpolated_Y_values).any(): 
                     if k < 300:
                         continue
                     else:
+                        # use nearestNDInterpolator
                         interpolator = prepare_interpolator(
-                                k, 
-                                gas, 
-                                gas_data_column_names, 
-                                tree, 
-                                train_data_df, 
-                                train_data_column_names, 
-                                line_names_with_log,
+                                k = k, 
+                                gas = gas, 
+                                gas_data_column_names = gas_data_column_names, 
+                                tree = tree, 
+                                train_data_df = train_data_df, 
+                                train_data_column_names = train_data_column_names, 
+                                target_column_names = properties_column_names_with_log, 
                                 interpolator="NearestNDInterpolator"
                             )
-                        interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
+                        interpolated_Y_values = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
                         break
                 else: 
                     break  # Break out of the loop if and there exist no NaN values 
+
             except Exception as e:
                 # If it fails with the current k, continue to the next one
                 continue
-                    
+        
+        # If interpolator is not able to be constructed, exit with an error code.
         if interpolator == None:
             print(f"Error: interpolator is None for index: {gas['index']}")
             exit(99)
 
-        # Calculate area 
-        area = gas['mass'] * constants.M_sun2gr / (gas['density'] * (10**gas[scale_length[0]] * constants.pc2cm)) 
-
-        # Calculate luminosity
-        luminosities = interpolated_intensities * area
-                
+        # Append the gas indices and properties each other. 
         gas_indices_luminosities.append(
-            np.concatenate(([gas['index']], luminosities))
+            np.concatenate(([gas['index']], interpolated_Y_values))
         )
-        
-    return gas_indices_luminosities 
 
-def meters_to_Ghz_calculator(wavelength_in_meters):
-    c = 299792458  # m/s
-    frequency_in_Ghz = c / wavelength_in_meters * 1e-9
-    return frequency_in_Ghz
+    return gas_indices_luminosities
 
-def return_ergs_per_second2radio_units(rest_frequency):
-    ergs_per_second2solar_luminosity = constants.ergs2Lsolar # TODO: Everyone is citing different values. Ask the value of conversion from erg/s -> Lsolar
-    solar_luminosity2radio_units = (3e-11 * (rest_frequency**3)) ** (-1)  # Rest frequency should be in Ghz
-    ergs_per_second2radio_units = (ergs_per_second2solar_luminosity * solar_luminosity2radio_units)
 
-    return ergs_per_second2radio_units
-
-def change_unit_of_CO_emission(gas_indices_luminosities_df, lines_and_wavelengths):
-
-    for line in lines_and_wavelengths: 
-        conversion_factor = return_ergs_per_second2radio_units(
-            rest_frequency=meters_to_Ghz_calculator(lines_and_wavelengths[line])
-        )
-        gas_indices_luminosities_df[line] *= conversion_factor
-
-    return gas_indices_luminosities_df
-
-def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, base_line_names, merged_df):
+def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, properties_column_names, merged_df):
 
     train_data_file_paths_str = "\n".join(train_data_file_paths)
 
     header = f"""
-    Gas particles for {galaxy_name} galaxy
-
     Estimated according to:
     ---------------------
     log_metallicity
@@ -525,29 +412,11 @@ def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, ba
     Column 16: average_sobolev_smoothingLength (pc)
     Column 17: index [1]
     Column 18: isrf [G0]
-    Column 19: L_ly_alpha [erg s^-1]
-    Column 20: L_h_alpha [erg s^-1]
-    Column 21: L_h_beta [erg s^-1]
-    Column 22: L_co_10 [K km s^-1 pc^2]
-    Column 23: L_co_21 [K km s^-1 pc^2]
-    Column 24: L_co_32 [K km s^-1 pc^2]
-    Column 25: L_co_43 [K km s^-1 pc^2]
-    Column 26: L_co_54 [K km s^-1 pc^2]
-    Column 27: L_co_65 [K km s^-1 pc^2]
-    Column 28: L_co_76 [K km s^-1 pc^2]
-    Column 29: L_co_87 [K km s^-1 pc^2]
-    Column 30: L_13co [K km s^-1 pc^2]
-    Column 31: L_c2 [erg s^-1]
-    Column 32: L_o3_88 [erg s^-1]
-    Column 33: L_o3_5006 [erg s^-1]
-    Column 34: L_o3_4958 [erg s^-1]
+    Column 19: fh2 [1]
+    Column 20: fCO [1] Σco / ΣH2
     """
 
-    line_names = []
-    for line_name in base_line_names:
-        line_names.append(f"L_{line_name}")
-
-    write_df = merged_df[gas_column_names + line_names]
+    write_df = merged_df[gas_column_names + properties_column_names]
 
     np.savetxt(fname=write_file_path, X=write_df, fmt="%.5e", header=header)
 
@@ -559,6 +428,6 @@ if __name__ == "__main__":
     galaxy_name = sys.argv[1]
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
-    max_workers = int(sys.argv[4]) 
+    max_workers = int(sys.argv[4])
 
     main(galaxy_name, galaxy_type, redshift, max_workers)

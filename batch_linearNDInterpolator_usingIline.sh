@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=80
 #SBATCH --time=23:00:00
-#SBATCH --job-name=linearNDInterpolator_usingIline
-#SBATCH --output=linearNDInterpolator_usingIline.out
-#SBATCH --error=linearNDInterpolator_usingIline.err
+#SBATCH --job-name=hybridInterpolator_otherProperties
+#SBATCH --output=hybridInterpolator_otherProperties.out
+#SBATCH --error=hybridInterpolator_otherProperties.err
 
 
 module purge 
@@ -30,13 +30,13 @@ wait_for_jobs() {
 # Counter for every 10 galaxies
 counter=0
 
-for i in {600..999}; do
-    python linearNDInterpolator_usingIline.py gal$i firebox $redshift $number_of_processors_per_galaxy &
+# for i in {600..999}; do
+for i in {8..9}; do
+    python hybridInterpolator_otherProperties.py gal$i firebox $redshift $number_of_processors_per_galaxy &
 
     # Increment counter
     ((counter++))
 
-    # Every 10th galaxy, wait for all background jobs to finish
     if [ $counter -ge $number_of_background_galaxies ]; then
         wait_for_jobs
         counter=0
@@ -52,29 +52,28 @@ counter=0
 
 # List of galaxy names
 galaxy_names=(
-    "m12b_res7100_md" 
-    "m12c_res7100_md"
-    "m12f_res7100_md"
+    # "m12b_res7100_md" 
+    # "m12c_res7100_md"
+    # "m12f_res7100_md"
     "m12i_res7100_md"
-    "m12m_res7100_md"
-    "m12q_res7100_md"
-    "m12r_res7100_md"
-    "m12w_res7100_md"
-    "m11d_r7100"
-    "m11e_r7100"
-    "m11h_r7100"
-    "m11i_r7100"
-    "m11q_r7100"    
+    # "m12m_res7100_md"
+    # "m12q_res7100_md"
+    # "m12r_res7100_md"
+    # "m12w_res7100_md"
+    # "m11d_r7100"
+    # "m11e_r7100"
+    # "m11h_r7100"
+    # "m11i_r7100"
+    # "m11q_r7100"    
 )
 
 
 for galaxy in "${galaxy_names[@]}"; do
-    python linearNDInterpolator_usingIline.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
+    python hybridInterpolator_otherProperties.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
 
     # Increment counter
     ((counter++))
 
-    # Every 10th galaxy, wait for all background jobs to finish
     if [ $counter -ge $number_of_background_galaxies ]; then
         wait_for_jobs
         counter=0
@@ -92,12 +91,11 @@ wait_for_jobs
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python linearNDInterpolator_usingIline.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
+#     python hybridInterpolator_otherProperties.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))
 
-#     # Every 10th galaxy, wait for all background jobs to finish
 #     if [ $counter -ge $number_of_background_galaxies ]; then
 #         wait_for_jobs
 #         counter=0
