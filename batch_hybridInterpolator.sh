@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=80
 #SBATCH --time=23:00:00
-#SBATCH --job-name=particleSplit_nearestCloudyRun_usingIline
-#SBATCH --output=particleSplit_nearestCloudyRun_usingIline.out
-#SBATCH --error=particleSplit_nearestCloudyRun_usingIline.err
+#SBATCH --job-name=otherProperties_particle_split
+#SBATCH --output=otherProperties_particle_split.out
+#SBATCH --error=otherProperties_particle_split.err
 
 
 module purge 
@@ -15,6 +15,7 @@ cd /home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/python_file
 
 number_of_background_galaxies=1
 redshift=0.0
+number_of_processors_per_galaxy=40
 
 # Function to wait for all background processes to finish
 wait_for_jobs() {
@@ -29,13 +30,13 @@ wait_for_jobs() {
 # # Counter for every 10 galaxies
 # counter=0
 
-# for i in {600..999}; do
-#     python nearestCloudyRun_usingIline.py gal$i firebox $redshift &
+# # for i in {600..999}; do
+# for i in {8..9}; do
+#     python hybridInterpolator_otherProperties.py gal$i firebox $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))
 
-#     # Every 10th galaxy, wait for all background jobs to finish
 #     if [ $counter -ge $number_of_background_galaxies ]; then
 #         wait_for_jobs
 #         counter=0
@@ -68,12 +69,11 @@ wait_for_jobs() {
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python nearestCloudyRun_usingIline.py $galaxy zoom_in $redshift &
+#     python hybridInterpolator_otherProperties.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))
 
-#     # Every 10th galaxy, wait for all background jobs to finish
 #     if [ $counter -ge $number_of_background_galaxies ]; then
 #         wait_for_jobs
 #         counter=0
@@ -91,12 +91,11 @@ galaxy_names=(
 
 
 for galaxy in "${galaxy_names[@]}"; do
-    python nearestCloudyRun_usingIline.py $galaxy particle_split $redshift &
+    python hybridInterpolator_otherProperties.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
 
     # Increment counter
     ((counter++))
 
-    # Every 10th galaxy, wait for all background jobs to finish
     if [ $counter -ge $number_of_background_galaxies ]; then
         wait_for_jobs
         counter=0

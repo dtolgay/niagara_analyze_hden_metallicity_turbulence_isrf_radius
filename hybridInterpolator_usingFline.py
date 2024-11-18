@@ -1,3 +1,4 @@
+from itertools import chain
 import sys
 sys.path.append("/home/m/murray/dtolgay/scratch")
 from tools import constants
@@ -20,7 +21,7 @@ mu = 1.38 # Krumholz and Gnedin
 
 
 
-def main(galaxy_name, galaxy_type, redshift, max_workers):
+def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_info=False):
 
     start = time()
 
@@ -37,7 +38,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_linearNDInterpolator_intensity2Luminosity.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_hybridInterpolator_flux2Luminosity.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -68,7 +69,6 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
         "o3_5006",
         "o3_4958",        
     ]
-
 
     ################ Read training data particles 
 
@@ -132,19 +132,20 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     #     )
 
     # Calculate the line luminosities from intensity data in parallel
+    # used_interpolator_info_chunks = []
+    # gas_indices_luminosities_chunks = []
+    gas_indices_luminosities = []
+    used_interpolator_info = []
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [
             executor.submit(calculate_Lline, gas_particles_df_chunk, train_data_df, line_names_with_log)
             for gas_particles_df_chunk in gas_particles_df_chunks
         ]
-        gas_indices_luminosities_chunks = [future.result() for future in futures]        
+        for future in futures:
+            result = future.result()
+            gas_indices_luminosities.extend(result[0])
+            used_interpolator_info.extend(result[1])    
         
-    # Flatten the array
-    print("Flattening the array")
-    gas_indices_luminosities = [] 
-    for interpolated_value_for_gas_particles_in_the_chunk in gas_indices_luminosities_chunks:
-        for interpolated_value_for_gas_particle in interpolated_value_for_gas_particles_in_the_chunk:
-            gas_indices_luminosities.append(interpolated_value_for_gas_particle)
             
     # Create df of the retuned luminosities 
     log_line_names = []
@@ -154,6 +155,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     column_names = ['index'] + log_line_names
 
     gas_indices_luminosities_df = pd.DataFrame(gas_indices_luminosities, columns=column_names).sort_values(by="index", ascending=True)
+    used_interpolator_info_df = pd.DataFrame(used_interpolator_info, columns=['index', 'used_interpolator'])
 
 
     # Change the unit of the calculated CO luminosities 
@@ -177,7 +179,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     # Merge two dataframes
     if len(gas_indices_luminosities_df) == len(gas_particles_df):
         print("Lengths of luminosities and gas particles are the same. Merging can be done.")
-        merged_df = gas_particles_df.merge(gas_indices_luminosities_df, how='left', on='index', validate='one_to_one') # Check if it is one to one 
+        merged_df = gas_particles_df.merge(gas_indices_luminosities_df, how='inner', on='index', validate='one_to_one') # Check if it is one to one 
     else:
         print("Lengths of luminosities and gas particles are NOT same. Exiting with code 3...")
         exit(3)
@@ -191,6 +193,14 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
         merged_df = merged_df
         )
     
+
+    # Write used interpolator to another file
+    if write_interpolator_info:
+        fpath_write_interpolator_info = f"{cloudy_gas_particles_file_directory}/hybridInterpolator_info.csv"
+        used_interpolator_info_df.to_csv(
+            fpath_write_interpolator_info
+        )
+
     end = time()
 
     print(f"Code took {np.round((end - start) / 60, 3)} minutes")
@@ -404,7 +414,8 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
 
     
     gas_indices_luminosities = []
-    
+    used_interpolator_info = []
+
     intial_index = gas_particles_df.iloc[0]['index']
     for index, gas in gas_particles_df.iterrows():
         if intial_index == 0:
@@ -440,8 +451,10 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
                                 interpolator="NearestNDInterpolator"
                             )
                         interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
+                        used_interpolator = "NearestND"
                         break
                 else: 
+                    used_interpolator = "LinearND"
                     break  # Break out of the loop if and there exist no NaN values 
             except Exception as e:
                 # If it fails with the current k, continue to the next one
@@ -456,12 +469,14 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
 
         # Calculate luminosity
         luminosities = interpolated_intensities * area
-                
+
         gas_indices_luminosities.append(
             np.concatenate(([gas['index']], luminosities))
         )
         
-    return gas_indices_luminosities 
+        used_interpolator_info.append([gas['index'], used_interpolator])
+
+    return gas_indices_luminosities, used_interpolator_info 
 
 def meters_to_Ghz_calculator(wavelength_in_meters):
     c = 299792458  # m/s
@@ -549,7 +564,7 @@ def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, ba
 
     write_df = merged_df[gas_column_names + line_names]
 
-    np.savetxt(fname=write_file_path, X=write_df, fmt="%.5e", header=header)
+    np.savetxt(fname=write_file_path, X=write_df, fmt="%.8e", header=header)
 
     print(f"File saved to: {write_file_path}")
 
@@ -561,4 +576,4 @@ if __name__ == "__main__":
     redshift = sys.argv[3]
     max_workers = int(sys.argv[4]) 
 
-    main(galaxy_name, galaxy_type, redshift, max_workers)
+    main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_info=True)
