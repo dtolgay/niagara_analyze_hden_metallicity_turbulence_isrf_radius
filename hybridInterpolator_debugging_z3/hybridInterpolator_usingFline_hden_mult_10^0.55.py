@@ -36,7 +36,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_hybridInterpolator_flux2Luminosity.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_hybridInterpolator_flux2Luminosity_hden_mult_10^0.55.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -242,6 +242,9 @@ def read_cloudy_gas_particles(cloudy_gas_particles_file_directory):
 
     # isrf of the gas particles can be zero, therefore set them equal to a very small number
     gas_particles_df.loc[gas_particles_df["isrf"] == 0, "isrf"] = 1e-30
+
+    ## Do the operation here 
+    gas_particles_df['hden'] *= 10**(0.55)
 
     # Extend the dataframe by adding the log of the parameters
     gas_particles_df[

@@ -19,10 +19,8 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
 
     start = time()
 
-    # directory_name = "lichen_voronoi_1e6"
-    directory_name = "voronoi_1e6"
-    # directory_name = "voronoi_1e6_improved_wavelength_bin"
-    # directory_name = "trial1"
+    # directory_name = "voronoi_1e6"
+    directory_name = "voronoi_1e5"
 
     print(
         f"------------------------------------------ {galaxy_name} ------------------------------------------"

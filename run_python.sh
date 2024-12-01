@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=80
 #SBATCH --time=23:00:00
-#SBATCH --job-name=hybridInterp_line_m12i
-#SBATCH --output=hybridInterp_line_m12i.out
-#SBATCH --error=hybridInterp_line_m12i.err
+#SBATCH --job-name=1e5_m12i_Fline
+#SBATCH --output=1e5_m12i_Fline.out
+#SBATCH --error=1e5_m12i_Fline.err
 
 module purge 
 ml python/3.11.5

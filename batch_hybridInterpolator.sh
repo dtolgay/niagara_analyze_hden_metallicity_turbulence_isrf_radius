@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=80
 #SBATCH --time=23:00:00
-#SBATCH --job-name=otherProperties_particle_split
-#SBATCH --output=otherProperties_particle_split.out
-#SBATCH --error=otherProperties_particle_split.err
+#SBATCH --job-name=m12i_1e5_otherProperties_particle_split
+#SBATCH --output=m12i_1e5_otherProperties_particle_split.out
+#SBATCH --error=m12i_1e5_otherProperties_particle_split.err
 
 
 module purge 
@@ -25,6 +25,9 @@ wait_for_jobs() {
     done
 }
 
+
+## Single galaxy 
+python hybridInterpolator_otherProperties.py m12i_res7100_md particle_split 0.0 40
 
 # ####### firebox
 # # Counter for every 10 galaxies
@@ -84,23 +87,23 @@ wait_for_jobs() {
 # wait_for_jobs
 
 
-####### particle_split
-galaxy_names=(
-    "m12i_r880_md"    
-)
+# ####### particle_split
+# galaxy_names=(
+#     "m12i_r880_md"    
+# )
 
 
-for galaxy in "${galaxy_names[@]}"; do
-    python hybridInterpolator_otherProperties.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
+# for galaxy in "${galaxy_names[@]}"; do
+#     python hybridInterpolator_otherProperties.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
 
-    # Increment counter
-    ((counter++))
+#     # Increment counter
+#     ((counter++))
 
-    if [ $counter -ge $number_of_background_galaxies ]; then
-        wait_for_jobs
-        counter=0
-    fi
-done
+#     if [ $counter -ge $number_of_background_galaxies ]; then
+#         wait_for_jobs
+#         counter=0
+#     fi
+# done
 
-# Wait for the last set of jobs to finish
-wait_for_jobs
+# # Wait for the last set of jobs to finish
+# wait_for_jobs
