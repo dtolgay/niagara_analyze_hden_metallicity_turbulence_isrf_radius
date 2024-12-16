@@ -19,8 +19,8 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
 
     start = time()
 
-    # directory_name = "voronoi_1e6"
-    directory_name = "voronoi_1e5"
+    directory_name = "voronoi_1e6"
+    # directory_name = "voronoi_1e5"
 
     print(
         f"------------------------------------------ {galaxy_name} ------------------------------------------"
@@ -30,7 +30,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/otherProperties_nearestCloudyRun.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/otherProperties_hybridInterpolator.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -416,7 +416,7 @@ def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, pr
 
     write_df = merged_df[gas_column_names + properties_column_names]
 
-    np.savetxt(fname=write_file_path, X=write_df, fmt="%.5e", header=header)
+    np.savetxt(fname=write_file_path, X=write_df, fmt="%.8e", header=header)
 
     print(f"File saved to: {write_file_path}")
 

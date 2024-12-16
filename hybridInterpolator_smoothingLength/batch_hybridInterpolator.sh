@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=80
-#SBATCH --time=23:00:00
+#SBATCH --ntasks-per-node=40
+#SBATCH --time=12:00:00
 #SBATCH --job-name=smoothingLength
 #SBATCH --output=smoothingLength.out
 #SBATCH --error=smoothingLength.err
@@ -11,7 +11,7 @@
 module purge 
 module load python/3.11.5 
 
-cd /home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius
+cd /home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/hybridInterpolator_smoothingLength
 
 number_of_background_galaxies=1
 redshift=0.0
@@ -27,15 +27,15 @@ wait_for_jobs() {
 
 
 ## Single galaxy 
-python hybridInterpolator_otherProperties.py m12i_res7100_md particle_split 0.0 40
+# python hybridInterpolator_usingFline.py m12i_res7100_md particle_split 0.0 40
 
 # ####### firebox
 # # Counter for every 10 galaxies
 # counter=0
 
 # # for i in {600..999}; do
-# for i in {8..9}; do
-#     python hybridInterpolator_otherProperties.py gal$i firebox $redshift $number_of_processors_per_galaxy &
+# for i in {30..35}; do
+#     python hybridInterpolator_usingFline.py gal$i firebox $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))
@@ -72,7 +72,7 @@ python hybridInterpolator_otherProperties.py m12i_res7100_md particle_split 0.0 
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python hybridInterpolator_otherProperties.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
+#     python hybridInterpolator_usingFline.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))
@@ -94,7 +94,7 @@ python hybridInterpolator_otherProperties.py m12i_res7100_md particle_split 0.0 
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python hybridInterpolator_otherProperties.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
+#     python hybridInterpolator_usingFline.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))
