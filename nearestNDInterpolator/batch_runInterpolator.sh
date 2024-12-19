@@ -3,15 +3,15 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=20:00:00
-#SBATCH --job-name=z3_Lum
-#SBATCH --output=z3_Lum.out
-#SBATCH --error=z3_Lum.err
+#SBATCH --job-name=z3_Lum_averageSobolevH
+#SBATCH --output=z3_Lum_averageSobolevH.out
+#SBATCH --error=z3_Lum_averageSobolevH.err
 
 
 module purge 
 module load python/3.11.5 
 
-cd /home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/hybridInterpolator_smoothingLength
+cd /home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/nearestNDInterpolator
 
 number_of_background_galaxies=1
 redshift=3.0
@@ -26,16 +26,13 @@ wait_for_jobs() {
 }
 
 
-## Single galaxy 
-# python hybridInterpolator_usingFline_decreased_k.py m12i_res7100_md particle_split 0.0 40
-
 ####### firebox
 # Counter for every 10 galaxies
 counter=0
 
 # for i in {600..999}; do
 for i in {0..50}; do
-    python hybridInterpolator_usingFline_decreased_k.py gal$i firebox $redshift $number_of_processors_per_galaxy &
+    python nearestNDInterpolator_usingFline_averageSobolevH.py gal$i firebox $redshift $number_of_processors_per_galaxy &
 
     # Increment counter
     ((counter++))
@@ -72,7 +69,7 @@ galaxy_names=(
 
 
 for galaxy in "${galaxy_names[@]}"; do
-    python hybridInterpolator_usingFline_decreased_k.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
+    python nearestNDInterpolator_usingFline_averageSobolevH.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
 
     # Increment counter
     ((counter++))
@@ -94,7 +91,7 @@ wait_for_jobs
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python hybridInterpolator_usingFline_decreased_k.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
+#     python nearestNDInterpolator_usingFline_averageSobolevH.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))

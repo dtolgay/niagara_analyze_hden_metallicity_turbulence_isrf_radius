@@ -1,5 +1,4 @@
 from itertools import chain
-from math import floor
 import sys
 sys.path.append("/home/m/murray/dtolgay/scratch")
 from tools import constants
@@ -37,7 +36,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_smoothingLength_hybridInterpolator_flux2Luminosity.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_hybridInterpolator_flux2Luminosity.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -184,15 +183,12 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
         exit(3)
 
     # Write to a file
-    print(f"Started to write file")
-    number_of_significant_digits = floor(np.log10(len(merged_df)))
     write_to_a_file(
         write_file_path = write_file_path, 
         train_data_file_paths = train_data_file_paths,
         gas_column_names = gas_column_names, 
         base_line_names = base_line_names, 
-        merged_df = merged_df,
-        number_of_significant_digits = number_of_significant_digits,
+        merged_df = merged_df
         )
     
 
@@ -276,9 +272,7 @@ def read_cloudy_gas_particles(cloudy_gas_particles_file_directory):
         ]
     )  # Take the log of the gas properties and interpolate using these logarithmic values.  
 
-    print(f"{cloudy_gas_particles_file_directory}/cloudy_gas_particles.txt read and dataframe is created!")   
-
-    gas_particles_df.drop(['log_average_sobolev_smoothingLength', 'log_radius'], axis=1, inplace=True)   # TODO: Delete this row. Drop the columns
+    print(f"{cloudy_gas_particles_file_directory}/cloudy_gas_particles.txt read and dataframe is created!")      
     
     return gas_particles_df, gas_column_names 
 
@@ -406,8 +400,7 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
     
     
     scale_length = [
-        # "log_average_sobolev_smoothingLength"
-        "log_smoothing_length"
+        "log_average_sobolev_smoothingLength"
     ]
 
     gas_data_column_names = [
@@ -424,7 +417,7 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
     intial_index = gas_particles_df.iloc[0]['index']
     for index, gas in gas_particles_df.iterrows():
         if intial_index == 0:
-            if (gas['index'] % int(1e2) == 1):
+            if (gas['index'] % int(1e5) == 1):
                 print(f"{gas['index']} finished. Left {len(gas_particles_df) - gas['index']}")
 
         # List of k values to try in order
@@ -434,14 +427,7 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
             try:
                 # Try to query and interpolate with the current k value
                 interpolator = prepare_interpolator(
-                        k, 
-                        gas, 
-                        gas_data_column_names, 
-                        tree, 
-                        train_data_df, 
-                        train_data_column_names, 
-                        line_names_with_log, 
-                        interpolator="LinearNDInterpolator"
+                        k, gas, gas_data_column_names, tree, train_data_df, train_data_column_names, line_names_with_log, interpolator="LinearNDInterpolator"
                     )
                 
                 # Interpolate to check if there are NaN values 
@@ -512,9 +498,7 @@ def change_unit_of_CO_emission(gas_indices_luminosities_df, lines_and_wavelength
 
     return gas_indices_luminosities_df
 
-def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, base_line_names, merged_df, number_of_significant_digits):
-
-    number_of_significant_digits = int(number_of_significant_digits)
+def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, base_line_names, merged_df):
 
     train_data_file_paths_str = "\n".join(train_data_file_paths)
 
@@ -527,7 +511,7 @@ def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, ba
     log_hden
     log_turbulence
     log_isrf
-    log_smoothing_length
+    log_average_sobolev_smoothingLength
     ---------------------
 
     Used training centers:
@@ -578,7 +562,7 @@ def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, ba
 
     write_df = merged_df[gas_column_names + line_names]
 
-    np.savetxt(fname=write_file_path, X=write_df, fmt=f"%.{number_of_significant_digits}e", header=header)
+    np.savetxt(fname=write_file_path, X=write_df, fmt="%.8e", header=header)
 
     print(f"File saved to: {write_file_path}")
 

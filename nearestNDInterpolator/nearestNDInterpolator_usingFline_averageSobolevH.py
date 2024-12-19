@@ -37,7 +37,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_smoothingLength_hybridInterpolator_flux2Luminosity.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_averageSobolevH_nearestNDInterpolator_flux2Luminosity.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -278,8 +278,6 @@ def read_cloudy_gas_particles(cloudy_gas_particles_file_directory):
 
     print(f"{cloudy_gas_particles_file_directory}/cloudy_gas_particles.txt read and dataframe is created!")   
 
-    gas_particles_df.drop(['log_average_sobolev_smoothingLength', 'log_radius'], axis=1, inplace=True)   # TODO: Delete this row. Drop the columns
-    
     return gas_particles_df, gas_column_names 
 
 def read_training_data(base_file_dir, main_directory, file_name, base_line_names):
@@ -406,8 +404,8 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
     
     
     scale_length = [
-        # "log_average_sobolev_smoothingLength"
-        "log_smoothing_length"
+        "log_average_sobolev_smoothingLength"
+        # "log_smoothing_length"
     ]
 
     gas_data_column_names = [
@@ -427,10 +425,9 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
             if (gas['index'] % int(1e2) == 1):
                 print(f"{gas['index']} finished. Left {len(gas_particles_df) - gas['index']}")
 
-        # List of k values to try in order
-        k_values = [50, 100, 500, 1000, 2000, 3000, 5000, int(1e4)]
+        k_values = [100]
 
-        for k in k_values:
+        for k in k_values: # For loop is legacy
             try:
                 # Try to query and interpolate with the current k value
                 interpolator = prepare_interpolator(
@@ -441,36 +438,15 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
                         train_data_df, 
                         train_data_column_names, 
                         line_names_with_log, 
-                        interpolator="LinearNDInterpolator"
+                        interpolator="NearestNDInterpolator"
                     )
                 
                 # Interpolate to check if there are NaN values 
                 interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
 
-                # If there exist any NaN change iterate to the next k value:
-                if np.isnan(interpolated_intensities).any(): 
-                    if k < 300:
-                        continue
-                    else:
-                        interpolator = prepare_interpolator(
-                                k, 
-                                gas, 
-                                gas_data_column_names, 
-                                tree, 
-                                train_data_df, 
-                                train_data_column_names, 
-                                line_names_with_log,
-                                interpolator="NearestNDInterpolator"
-                            )
-                        interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
-                        used_interpolator = "NearestND"
-                        break
-                else: 
-                    used_interpolator = "LinearND"
-                    break  # Break out of the loop if and there exist no NaN values 
+                used_interpolator = "NearestNDInterpolator"
             except Exception as e:
-                # If it fails with the current k, continue to the next one
-                continue
+                print(f"Error happened: {e}")
                     
         if interpolator == None:
             print(f"Error: interpolator is None for index: {gas['index']}")
@@ -527,7 +503,7 @@ def write_to_a_file(write_file_path, train_data_file_paths, gas_column_names, ba
     log_hden
     log_turbulence
     log_isrf
-    log_smoothing_length
+    log_average_sobolev_smoothingLength
     ---------------------
 
     Used training centers:
@@ -590,4 +566,4 @@ if __name__ == "__main__":
     redshift = sys.argv[3]
     max_workers = int(sys.argv[4]) 
 
-    main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_info=True)
+    main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_info=False)
