@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=20:00:00
-#SBATCH --job-name=z0_allGalaxies_otherProperties_smoothingLength_hybridInterpolator
-#SBATCH --output=z0_allGalaxies_otherProperties_smoothingLength_hybridInterpolator.out
-#SBATCH --error=z0_allGalaxies_otherProperties_smoothingLength_hybridInterpolator.err
+#SBATCH --job-name=z3_gal>700_Lline_smoothingLength_hybridInterpolator
+#SBATCH --output=z3_gal>700_Lline_smoothingLength_hybridInterpolator.out
+#SBATCH --error=z3_gal>700_Lline_smoothingLength_hybridInterpolator.err
 
 
 module purge 
@@ -30,9 +30,9 @@ wait_for_jobs() {
 # Counter for every 10 galaxies
 counter=0
 
-# for i in {600..999}; do
-for i in {0..1000}; do
-    python hybridInterpolator_otherProperties_smoothingLength.py gal$i firebox $redshift $number_of_processors_per_galaxy &
+for i in {700..1000}; do
+# for i in {0..51}; do
+    python hybridInterpolator_usingFline_smoothingLength.py gal$i firebox $redshift $number_of_processors_per_galaxy &
 
     # Increment counter
     ((counter++))
@@ -69,7 +69,7 @@ galaxy_names=(
 
 
 for galaxy in "${galaxy_names[@]}"; do
-    python hybridInterpolator_otherProperties_smoothingLength.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
+    python hybridInterpolator_usingFline_smoothingLength.py $galaxy zoom_in $redshift $number_of_processors_per_galaxy &
 
     # Increment counter
     ((counter++))
@@ -91,7 +91,7 @@ done
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python hybridInterpolator_otherProperties_smoothingLength.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
+#     python hybridInterpolator_usingFline_smoothingLength.py $galaxy particle_split $redshift $number_of_processors_per_galaxy &
 
 #     # Increment counter
 #     ((counter++))
