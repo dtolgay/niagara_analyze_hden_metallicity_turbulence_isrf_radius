@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=80
+#SBATCH --ntasks-per-node=40
 #SBATCH --time=23:00:00
 #SBATCH --job-name=1e6_m12i_otherProperties
 #SBATCH --output=1e6_m12i_otherProperties.out
