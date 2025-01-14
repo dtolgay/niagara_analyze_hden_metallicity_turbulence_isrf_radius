@@ -52,8 +52,6 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     # Read gas particles 
     gas_particles_df, gas_column_names = read_cloudy_gas_particles(cloudy_gas_particles_file_directory)
 
-    gas_particles_df = gas_particles_df.iloc[0:10].copy() #TODO: Delete 
-
     base_line_names = [
         "ly_alpha",
         "h_alpha",
@@ -138,16 +136,14 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     # used_interpolator_info_chunks = []
     # gas_indices_luminosities_chunks = []
     gas_indices_luminosities = []
-    used_interpolator_info = []
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(calculate_Lline, gas_particles_df_chunk, train_data_df, line_names_with_log, train_data_file_paths)
+            executor.submit(calculate_Lline, gas_particles_df_chunk, train_data_df, train_data_file_paths, line_names_with_log)
             for gas_particles_df_chunk in gas_particles_df_chunks
         ]
         for future in futures:
             result = future.result()
-            gas_indices_luminosities.extend(result[0])
-            used_interpolator_info.extend(result[1])    
+            gas_indices_luminosities.extend(result)
         
             
     # Create df of the retuned luminosities 
@@ -158,7 +154,6 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     column_names = ['index'] + log_line_names
 
     gas_indices_luminosities_df = pd.DataFrame(gas_indices_luminosities, columns=column_names).sort_values(by="index", ascending=True)
-    used_interpolator_info_df = pd.DataFrame(used_interpolator_info, columns=['index', 'used_interpolator'])
 
     # Change the unit of the calculated CO luminosities 
     CO_lines_and_wavelengths = {
@@ -199,13 +194,6 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
         number_of_significant_digits = number_of_significant_digits,
         )
     
-
-    # Write used interpolator to another file
-    if write_interpolator_info:
-        fpath_write_interpolator_info = f"{cloudy_gas_particles_file_directory}/hybridInterpolator_info.csv"
-        used_interpolator_info_df.to_csv(
-            fpath_write_interpolator_info
-        )
 
     end = time()
 
@@ -283,6 +271,7 @@ def read_cloudy_gas_particles(cloudy_gas_particles_file_directory):
     print(f"{cloudy_gas_particles_file_directory}/cloudy_gas_particles.txt read and dataframe is created!")   
 
     return gas_particles_df, gas_column_names 
+
 
 def read_training_data(base_file_dir, main_directory, file_name, base_line_names):
 
@@ -409,8 +398,8 @@ def find_converged_run(cloudy_em_str: np.ndarray, threshold: float = 0) -> np.nd
 
 
 
-def calculate_line_luminosity_from_cloudy_run_volume_integral(train_data_file_paths, fdir, log_cloudy_metallicity, log_gas_radius):
-
+def calculate_L_line_with_volume_integral_per_gas_particle(train_data_file_paths, fdir, log_cloudy_metallicity, log_gas_radius_in_pc):
+    
     COLUMNS_EMISSIVITY = [
         "radius",
         "ly_alpha",
@@ -435,7 +424,7 @@ def calculate_line_luminosity_from_cloudy_run_volume_integral(train_data_file_pa
         TRAIN_DATA_FILE_PATH = train_data_file_paths[0]
     else:
         TRAIN_DATA_FILE_PATH = train_data_file_paths[1]
-
+        
     with open(f"{TRAIN_DATA_FILE_PATH}/{fdir}/{fdir}.out", "r") as file:
         lines = file.readlines()
         last_line = lines[-1]    
@@ -446,100 +435,85 @@ def calculate_line_luminosity_from_cloudy_run_volume_integral(train_data_file_pa
             )
             # Only use the coverged run
             cloudy_em_str = find_converged_run(cloudy_em_str=cloudy_em_str)
-
+            
             # Create a dictionary to store separate arrays for each column
             emissivity_arrays = pd.DataFrame(cloudy_em_str, columns=COLUMNS_EMISSIVITY)
-
-            # use only the radius values smaller than the radius of gas particle 
-            condition = emissivity_arrays['radius'] < 10**log_gas_radius
-            emissivity_arrays = emissivity_arrays.loc[condition].copy()
-
+            
+            ### use only the radius values smaller than the radius of gas particle
+            # Convert gas length to cm 
+            gas_shielding_length_in_cm = 10**log_gas_radius_in_pc * constants.pc2cm
+            condition = emissivity_arrays['radius'] < gas_shielding_length_in_cm
+            emissivity_arrays = emissivity_arrays.loc[condition].copy()            
+            
+            ### Get the volume integrals 
             volume_integrals = {}
             for key in emissivity_arrays:
                 if key != "radius":
                     volume_integrals[key] = 4 * np.pi * (
-                        integrate.simpson(y=emissivity_arrays[key]*emissivity_arrays['radius']**2, x=emissivity_arrays['radius'])
+                        integrate.trapz(y=emissivity_arrays[key]*emissivity_arrays['radius']**2, x=emissivity_arrays['radius'])
                     ) # erg s^-1      
+                
+    return volume_integrals 
 
-    print(f"volume_integrals: {volume_integrals}") # TODO: Delete
-
-    return volume_integrals
-
-def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log, train_data_file_paths):
-
-    print("I am in the calculate_Lline")
+def calculate_Lline(gas_particles_df, train_data_df, train_data_file_paths, line_names_with_log):
     
-    train_data_column_names = [
-        "log_metallicity",
-        "log_hden",
-        "log_turbulence",
-        "log_isrf",
-        # "log_radius",    
-    ]
-
-    tree = KDTree(
-        train_data_df[train_data_column_names].to_numpy(),
-    ) # Create a tree for the training data
-    
-    
-    scale_length = "log_smoothing_length"
-
-    gas_data_column_names = [
-        "log_metallicity",
-        "log_hden",
-        "log_turbulence",
-        "log_isrf",      
-    ] 
-
-    
+    # Initiate array to store the index of gas and luminosities 
     gas_indices_luminosities = []
-    used_interpolator_info = []
+    
+    #### Tree creation
+    ##  Define centers
+    train_data_column_names = ["log_metallicity", "log_hden", "log_turbulence", "log_isrf"]
+    ## Only use the columns with these column names 
+    train_data_df = train_data_df[train_data_column_names].drop_duplicates()
+    ## Create the tree
+    tree = KDTree(
+        train_data_df,
+    ) # Create a tree for the training data
 
-    intial_index = gas_particles_df.iloc[0]['index']
-    for index, gas in gas_particles_df.iterrows():
-        if intial_index == 0:
-            if (gas['index'] % int(1e2) == 1):
-                print(f"{gas['index']} finished. Left {len(gas_particles_df) - gas['index']}")
 
-        # Use only the nearestNDInterpolator
-        # Query the tree for neighbors
-        k = 1
-        distances, indices = tree.query(gas[gas_data_column_names].to_numpy(), k=k)
-        # Determine the cloudy run 
-        center = train_data_df.iloc[index]
+    gas_data_tree_query_columns = train_data_column_names # This can change in the future
+    shilding_length_name = "log_smoothing_length"    
+    
+    for indices, gas in gas_particles_df.iterrows():
+        # Find the closest cloudy runs 
+        distances, cloudy_index = tree.query(gas[gas_data_tree_query_columns], k=1) # Return 1 but mostly everything should be done in the first iteration
+
+        # Get the cloudy center 
+        cloudy_center = train_data_df.iloc[cloudy_index].copy()
+
+        # Loop through the used radius values 
         log_radius_used_for_cloudy_run_array = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1]
         for log_radius_cloudy_run in log_radius_used_for_cloudy_run_array:
+            fdir = f"hden{cloudy_center['log_hden']:.5f}_metallicity{cloudy_center['log_metallicity']:.5f}_turbulence{cloudy_center['log_turbulence']:.5f}_isrf{cloudy_center['log_isrf']:.5f}_radius{log_radius_cloudy_run:.5f}"
             try:
-                # TODO: Delete 
-                print("gas: ")
-                print(gas[gas_data_column_names + [scale_length]])
-                # Calculate the luminosity assuming a sphere
-                used_interpolator = "NearestNDInterpolator" 
-                fdir = f"hden{center['log_hden']:.5f}_metallicity{center['log_metallicity']:.5f}_turbulence{center['log_turbulence']:.5f}_isrf{center['log_isrf']:.5f}_radius{log_radius_cloudy_run:.5f}"
-                volume_integrals = calculate_line_luminosity_from_cloudy_run_volume_integral(
+                volume_integrals = calculate_L_line_with_volume_integral_per_gas_particle(
                     train_data_file_paths = train_data_file_paths, 
                     fdir = fdir, 
-                    log_cloudy_metallicity = center['log_metallicity'], 
-                    log_gas_radius = gas[scale_length]
+                    log_cloudy_metallicity = cloudy_center['log_metallicity'], 
+                    log_gas_radius_in_pc = gas[shilding_length_name]
                 )
+                
+                luminosities = list(volume_integrals.values()) # erg/s 
 
-                break # Break if there is a success
-
+                break 
             except Exception as e:
-                print(f"Exception occured. \n{e}")
-                used_interpolator = "ErrorRun"                  
+                # print(f"Exception occured. log_shielding_length = {log_radius_cloudy_run} didn't work. Trying other radius values. Error is: \n {e}")
+                luminosities = np.array(len(line_names_with_log)) * np.nan # Create nan array
 
-        #### Luminosity calculation
-        # Get interpolated values
-        luminosities = volume_integrals.values()
 
+                
+        # Ensure gas['index'] is a 1-dimensional array
+        gas_index = np.array([gas['index']])  # Wrap scalar in a list to make it 1D
+
+        # Ensure luminosities is a 1-dimensional array
+        luminosities = np.atleast_1d(luminosities)  # Convert to 1D if it's not
+
+        # Concatenate the arrays
         gas_indices_luminosities.append(
-            np.concatenate(([gas['index']], luminosities))
-        )
-        
-        used_interpolator_info.append([gas['index'], used_interpolator])
-
-    return gas_indices_luminosities, used_interpolator_info 
+            np.concatenate((gas_index, luminosities))
+        )    
+    
+    return gas_indices_luminosities 
 
 def meters_to_Ghz_calculator(wavelength_in_meters):
     c = 299792458  # m/s
