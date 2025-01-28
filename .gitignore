@@ -5,3 +5,5 @@
 *.out
 *.err
 core*
+
+**/__pycache__

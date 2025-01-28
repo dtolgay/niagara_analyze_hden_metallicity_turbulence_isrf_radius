@@ -27,14 +27,14 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     start = time()
 
     directory_name = "voronoi_1e6"
-    # directory_name = "voronoi_1e5"
 
     print(
         f"------------------------------------------ {galaxy_name} ------------------------------------------"
     )
 
     ## Check if file exits. If it exists do not continue running the code, if not run the code.
-    cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
+    # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
+    cloudy_gas_particles_file_directory = "/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
     write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_smoothingLength_hybridInterpolator_flux2Luminosity.txt"
@@ -70,6 +70,22 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     ]
 
     ################ Read training data particles 
+
+    # #########
+    # # Only run
+    # train_data_base_file_dir = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
+    # train_data_main_directory = "m12i_res7100_md_test" 
+
+    # train_data_df_1, line_names_with_log = read_training_data(
+    #     base_file_dir = train_data_base_file_dir, 
+    #     main_directory = train_data_main_directory, 
+    #     file_name = "I_line_values_without_reversing.txt", 
+    #     base_line_names = base_line_names
+    # )     
+
+    # train_data_file_paths = [f"{train_data_base_file_dir}/{train_data_main_directory}"]
+    # train_data_df = train_data_df_1.copy()
+    # #########
 
     # 1st set of run
     train_data_base_file_dir_1 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"

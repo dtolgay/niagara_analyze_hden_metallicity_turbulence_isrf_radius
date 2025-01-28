@@ -320,7 +320,7 @@ def interpolate_otherProperties(gas_particles_df, train_data_df, properties_colu
                 print(f"{gas['index']} finished. Left {len(gas_particles_df) - gas['index']}")
 
         # List of k values to try in order
-        k_values = [50, 100, 500, 1000, 2000, 3000, 5000, int(1e4)]        
+        k_values = [50, 100, 500, 1000]
 
         for k in k_values: 
             try:

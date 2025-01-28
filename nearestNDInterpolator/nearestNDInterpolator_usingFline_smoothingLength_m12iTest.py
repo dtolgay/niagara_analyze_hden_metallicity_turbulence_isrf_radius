@@ -34,10 +34,12 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     )
 
     ## Check if file exits. If it exists do not continue running the code, if not run the code.
-    cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
+    # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
+    cloudy_gas_particles_file_directory = "/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"    
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_smoothingLength_hybridInterpolator_flux2Luminosity.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_smoothingLength_nearestNDInterpolator_flux2Luminosity.txt"
+    # write_file_path = f"{cloudy_gas_particles_file_directory}/L_line_smoothingLength_expected_flux2Luminosity.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -70,6 +72,21 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     ]
 
     ################ Read training data particles 
+    # #########
+    # # Only run
+    # train_data_base_file_dir = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
+    # train_data_main_directory = "m12i_res7100_md_test" 
+
+    # train_data_df_1, line_names_with_log = read_training_data(
+    #     base_file_dir = train_data_base_file_dir, 
+    #     main_directory = train_data_main_directory, 
+    #     file_name = "I_line_values_without_reversing.txt", 
+    #     base_line_names = base_line_names
+    # )     
+
+    # train_data_file_paths = [f"{train_data_base_file_dir}/{train_data_main_directory}"]
+    # train_data_df = train_data_df_1.copy()
+    # #########    
 
     # 1st set of run
     train_data_base_file_dir_1 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
@@ -427,10 +444,9 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
             if (gas['index'] % int(1e2) == 1):
                 print(f"{gas['index']} finished. Left {len(gas_particles_df) - gas['index']}")
 
-        # List of k values to try in order
-        k_values = [50, 100, 500, 1000]
+        k_values = [100]
 
-        for k in k_values:
+        for k in k_values: # For loop is legacy
             try:
                 # Try to query and interpolate with the current k value
                 interpolator = prepare_interpolator(
@@ -441,36 +457,15 @@ def calculate_Lline(gas_particles_df, train_data_df, line_names_with_log):
                         train_data_df, 
                         train_data_column_names, 
                         line_names_with_log, 
-                        interpolator="LinearNDInterpolator"
+                        interpolator="NearestNDInterpolator"
                     )
                 
                 # Interpolate to check if there are NaN values 
                 interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
 
-                # If there exist any NaN change iterate to the next k value:
-                if np.isnan(interpolated_intensities).any(): 
-                    if k < 300:
-                        continue
-                    else:
-                        interpolator = prepare_interpolator(
-                                k, 
-                                gas, 
-                                gas_data_column_names, 
-                                tree, 
-                                train_data_df, 
-                                train_data_column_names, 
-                                line_names_with_log,
-                                interpolator="NearestNDInterpolator"
-                            )
-                        interpolated_intensities = 10**interpolator(gas[gas_data_column_names])[0] # It returns an array of arrays. That's why [0] is done.
-                        used_interpolator = "NearestND"
-                        break
-                else: 
-                    used_interpolator = "LinearND"
-                    break  # Break out of the loop if and there exist no NaN values 
+                used_interpolator = "NearestNDInterpolator"
             except Exception as e:
-                # If it fails with the current k, continue to the next one
-                continue
+                print(f"Error happened: {e}")
                     
         if interpolator == None:
             print(f"Error: interpolator is None for index: {gas['index']}")
@@ -590,4 +585,4 @@ if __name__ == "__main__":
     redshift = sys.argv[3]
     max_workers = int(sys.argv[4]) 
 
-    main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_info=True)
+    main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_info=False)
