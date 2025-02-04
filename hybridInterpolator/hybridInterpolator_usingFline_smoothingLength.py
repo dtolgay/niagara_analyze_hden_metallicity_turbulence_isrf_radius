@@ -27,6 +27,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers, write_interpolator_inf
     start = time()
 
     directory_name = "voronoi_1e6"
+    # directory_name = "mstar_doubled_voronoi_1e6"
     # directory_name = "voronoi_1e5"
 
     print(
