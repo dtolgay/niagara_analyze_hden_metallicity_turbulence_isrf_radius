@@ -29,7 +29,7 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
 
     ## Check if file exits. If it exists do not continue running the code, if not run the code.
     cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
-    # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
+    # cloudy_gas_particles_file_directory = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
 
     write_file_path = f"{cloudy_gas_particles_file_directory}/otherProperties_smoothingLength_hybridInterpolator.txt"
 

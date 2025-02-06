@@ -1,8 +1,10 @@
-import os
-import time
-import pandas as pd # type: ignore
-import numpy as np
+from math import ceil
 import sys 
+sys.path.append("/scratch/m/murray/dtolgay")
+from tools import constants # type: ignore
+import os
+import pandas as pd # type: ignore
+import numpy as np # type: ignore
 import joblib # type: ignore
 
 def main(files_info, interpolators, interpolator_type):
@@ -11,25 +13,29 @@ def main(files_info, interpolators, interpolator_type):
         print(f"{files_info['write_file_name']} already exists. Stopping the run.")
         return None
     
-    # Read the centers
+    ### Read the centers
     gas_particles = read_cloudy_gas_particles(files_info)
+
+    # Note the gas particles columns before the interpolation
+    gas_particles_base_columns = gas_particles.columns # This is the columns before the interpolation
+    gas_particles_columns_write_to_file = list(gas_particles_base_columns) + list(interpolators[interpolator_type]["target_columns"]) # This is the full list of columns after the interpolation that will be written to the file 
 
     # Read the interpolator
     interpolator = joblib.load(interpolators[interpolator_type]["interpolator_path"])
 
     # Prepare the gas particles for interpolation
-    interpolation_columns_for_gas_particles = [
+    base_interpolation_columns_for_gas_particles = [
         "metallicity",
         "hden",
         "turbulence",
         "isrf",
         "smoothing_length",
     ]
+    used_shielding_length_name = base_interpolation_columns_for_gas_particles[-1]
 
-    gas_particles = take_log_the_interpolation_centers_for_gas_particles(gas_particles, interpolation_columns_for_gas_particles)
+    gas_particles, interpolation_columns_for_gas_particles = take_log_the_interpolation_centers_for_gas_particles(gas_particles, base_interpolation_columns_for_gas_particles)
 
     # measure the time it takes to interpolate in minutes
-    time_start = time.time()
     # Interpolate the gas particles
     gas_particles = interpolate(
         interpolator = interpolator, 
@@ -37,29 +43,108 @@ def main(files_info, interpolators, interpolator_type):
         interpolation_columns_for_gas_particles = interpolation_columns_for_gas_particles, 
         target_columns = interpolators[interpolator_type]["target_columns"]
     )
-    time_end = time.time()
-    print(f"Interpolation took {(time_end-time_start)/60:.2f} minutes.")
 
+    # Interpolate the remaining NaN values with the NearestNDInterpolator
+    # If gas particles with target columns have NaN indices interpolate them with the NearestNDInterpolator
+    if gas_particles[interpolators[interpolator_type]["target_columns"]].isna().any().any():
+        gas_particles = interpolate_for_nan_indices(
+            data = gas_particles, 
+            x_columns = interpolation_columns_for_gas_particles, 
+            target_columns = interpolators[interpolator_type]["target_columns"], 
+            interpolator_file_path = files_info["NearestNDInterpolator_file_path"]
+            )
+
+    # Calculate the line luminosities for the interpolated values if the interpolator type is line_emissions
+    # Change the unit of the calculated CO luminosities   
+    if interpolator_type == "line_emissions":  
+
+        gas_particles = calculate_line_luminosities_for_interpolated_values(
+            gas_particles = gas_particles, 
+            target_columns = interpolators[interpolator_type]["target_columns"],
+            used_shielding_length_name = used_shielding_length_name,
+        )
+
+        # Change the unit of the CO emissions from erg/s to K km/s pc2
+        # Define CO wavelengths 
+        CO_lines_and_wavelengths = {
+            "L_co_10": 2600.05e-6,  # meter
+            "L_co_21": 1300.05e-6,
+            "L_co_32": 866.727e-6,
+            "L_co_43": 650.074e-6,
+            "L_co_54": 520.08e-6,
+            "L_co_65": 433.438e-6,
+            "L_co_76": 371.549e-6,
+            "L_co_87": 325.137e-6,
+            "L_13co": 2719.67e-6,
+        }
+
+        gas_particles = change_unit_of_CO_emission(
+            gas_particles = gas_particles, 
+            lines_and_wavelengths = CO_lines_and_wavelengths
+        )
     
-    print(gas_particles.head())
+    # Write the results to a file
+    write_to_a_file(
+        gas_particles=gas_particles,
+        interpolators=interpolators, 
+        interpolator_type=interpolator_type, 
+        files_info=files_info,
+        gas_particles_columns_write_to_file = gas_particles_columns_write_to_file,
+        used_shielding_length_name = used_shielding_length_name,
+    )
 
     return None 
 
 
+def interpolate_for_nan_indices(data, x_columns, target_columns, interpolator_file_path):
+    """
+    Interpolates NaN values in the specified target columns of a DataFrame using a pre-trained interpolator.
+    Parameters:
+    data (pd.DataFrame): The input DataFrame containing NaN values to be interpolated.
+    x_columns (list of str): List of column names to be used as features for interpolation.
+    target_columns (list of str): List of column names where NaN values need to be interpolated.
+    interpolator_file_path (str): Path to the file containing the pre-trained interpolator.
+    Returns:
+    pd.DataFrame: A DataFrame with NaN values in the target columns interpolated.
+    """
+
+    
+    # Get the NaN rows 
+    nan_rows = data[data.isna().any(axis=1)].copy()
+
+    # Get the centers to interpolate 
+    centers = nan_rows[x_columns].copy() 
+
+    # Get the interpolator
+    interpolator = joblib.load(interpolator_file_path)
+    
+    # interpolate 
+    interpolated_values = interpolator(centers)
+
+    # Create dataframe to store the values 
+    interpolated_data = pd.DataFrame(centers, columns=x_columns)
+    interpolated_data[target_columns] = interpolated_values
+    
+    
+    # Merge the dataframes such that initially NaN values will be the interpolated values 
+    data_merged = data.combine_first(interpolated_data)
+
+    return data_merged
+
 def interpolate(interpolator, gas_particles, interpolation_columns_for_gas_particles, target_columns):
     
-    print(gas_particles[interpolation_columns_for_gas_particles].values)
-
     # Interpolate the gas particles
-    interpolated_values = interpolator(
+    log_interpolated_values = interpolator(
         gas_particles[interpolation_columns_for_gas_particles].values
     )
+
+    # Take the exponent of the interpolated values
+    interpolated_values = 10 ** log_interpolated_values
 
     # Put the results into dataframe 
     gas_particles[target_columns] = interpolated_values
 
     return gas_particles
-
 
 def read_cloudy_gas_particles(files_info):
     """
@@ -96,13 +181,130 @@ def read_cloudy_gas_particles(files_info):
 
     return gas_particles
 
-
 def take_log_the_interpolation_centers_for_gas_particles(gas_particles, interpolation_columns_for_gas_particles):
     
+    columns_names = []
     for column in interpolation_columns_for_gas_particles:
-        gas_particles[f"log_{column}"] = np.log10(gas_particles[column])
+        new_column_name = f"log_{column}"
+        columns_names.append(new_column_name)
+        gas_particles[new_column_name] = np.log10(gas_particles[column])
+
+    return gas_particles, columns_names
+
+def calculate_line_luminosities_for_interpolated_values(gas_particles, target_columns, used_shielding_length_name):
+
+    # Multiply with the gas particles area to find the luminosity of the line
+    gas_particles['area'] = gas_particles['mass'] * constants.M_sun2gr / (gas_particles['density'] * (gas_particles[used_shielding_length_name] * constants.pc2cm))  # cm2
+
+    # Multiply the interpolated fluxes with the area to find the luminosity of the line
+    gas_particles[target_columns] = gas_particles[target_columns].multiply(gas_particles['area'], axis=0)
 
     return gas_particles
+
+def meters_to_Ghz_calculator(wavelength_in_meters):
+    c = 299792458  # m/s
+    frequency_in_Ghz = c / wavelength_in_meters * 1e-9
+    return frequency_in_Ghz
+
+def return_ergs_per_second2radio_units(rest_frequency):
+    ergs_per_second2solar_luminosity = constants.ergs2Lsolar # TODO: Everyone is citing different values. Ask the value of conversion from erg/s -> Lsolar
+    solar_luminosity2radio_units = (3e-11 * (rest_frequency**3)) ** (-1)  # Rest frequency should be in Ghz
+    ergs_per_second2radio_units = (ergs_per_second2solar_luminosity * solar_luminosity2radio_units)
+
+    return ergs_per_second2radio_units
+
+def change_unit_of_CO_emission(gas_particles, lines_and_wavelengths):
+
+    for line in lines_and_wavelengths: 
+
+        conversion_factor = return_ergs_per_second2radio_units(
+            rest_frequency=meters_to_Ghz_calculator(lines_and_wavelengths[line])
+        )
+        gas_particles[line] *= conversion_factor
+
+    return gas_particles
+
+def write_to_a_file(gas_particles, interpolators, interpolator_type, files_info, gas_particles_columns_write_to_file, used_shielding_length_name):
+
+    # Add the base header
+    header = f"""
+    Estimated according to:
+    ---------------------
+    log_metallicity
+    log_hden
+    log_turbulence
+    log_isrf
+    {used_shielding_length_name}
+    ---------------------
+
+    Used training centers:
+    ---------------------
+    {interpolators[interpolator_type]["interpolator_path"]}
+    --------------------- 
+        Column 0: x-coordinate (pc)
+        Column 1: y-coordinate (pc)
+        Column 2: z-coordinate (pc)
+        Column 3: smoothing length (pc)
+        Column 4: mass (Msolar)
+        Column 5: metallicity (Zsolar)
+        Column 6: temperature (K)
+        Column 7: vx (km/s)
+        Column 8: vy (km/s)
+        Column 9: vz (km/s)
+        Column 10: hydrogen density (cm^-3)
+        Column 11: radius (pc)
+        Column 12: sfr (Msolar/yr)
+        Column 13: turbulence (km/s)
+        Column 14: density (gr/cm^-3)
+        Column 15: mu_theoretical (1)
+        Column 16: average_sobolev_smoothingLength (pc)
+        Column 17: index [1]
+        Column 18: isrf [G0]"""
+    
+    # Add the interpolator specific header
+    if interpolator_type == "line_emissions":
+        header_interpolater_specific = f"""
+        Column 19: L_ly_alpha [erg s^-1]
+        Column 20: L_h_alpha [erg s^-1]
+        Column 21: L_h_beta [erg s^-1]
+        Column 22: L_co_10 [K km s^-1 pc^2]
+        Column 23: L_co_21 [K km s^-1 pc^2]
+        Column 24: L_co_32 [K km s^-1 pc^2]
+        Column 25: L_co_43 [K km s^-1 pc^2]
+        Column 26: L_co_54 [K km s^-1 pc^2]
+        Column 27: L_co_65 [K km s^-1 pc^2]
+        Column 28: L_co_76 [K km s^-1 pc^2]
+        Column 29: L_co_87 [K km s^-1 pc^2]
+        Column 30: L_13co [K km s^-1 pc^2]
+        Column 31: L_c2 [erg s^-1]
+        Column 32: L_o3_88 [erg s^-1]
+        Column 33: L_o3_5006 [erg s^-1]
+        Column 34: L_o3_4958 [erg s^-1]
+        """
+    elif interpolator_type == "abundance":
+        header_interpolater_specific = f"""
+        Column 19: fh2 [1]
+        Column 20: fCO [1] Σco / ΣH2
+        """
+    elif interpolator_type == "temperature":
+        header_interpolater_specific = f"""
+        Column 19: Th2 [K]
+        Column 20: Tco [K]
+        Column 21: T [K]
+        """
+
+    header += header_interpolater_specific
+
+
+    write_df = gas_particles[gas_particles_columns_write_to_file].copy()
+    write_file_path = files_info["write_file_name"]
+    number_of_significant_digits = ceil(np.log10(len(write_df)))  
+ 
+    np.savetxt(fname=write_file_path, X=write_df, fmt=f"%.{number_of_significant_digits}e", header=header)
+
+    print(f"File saved to: {write_file_path}")
+    
+    return None
 
 if __name__ == "__main__":
 
@@ -114,29 +316,31 @@ if __name__ == "__main__":
             "target_columns": ["Th2", "Tco", "T"],
             "interpolator_path": f"{interpolators_base_fdir}/RegularGridInterpolator_linear_temperature.joblib",
             "write_file_name": "temperature_smoothingLength_regularGridInterpolator_linear",
+            "interpolator_identifier_name": "temperature",
         },
         "line_emissions": {
             "file_name": "I_line_values_without_reversing.txt",
             "target_columns": [
-                "I_ly_alpha",
-                "I_h_alpha",
-                "I_h_beta",
-                "I_co_10",
-                "I_co_21",
-                "I_co_32",
-                "I_co_43",
-                "I_co_54",
-                "I_co_65",
-                "I_co_76",
-                "I_co_87",
-                "I_13co",
-                "I_c2",
-                "I_o3_88",
-                "I_o3_5006",
-                "I_o3_4958",
+                "L_ly_alpha",
+                "L_h_alpha",
+                "L_h_beta",
+                "L_co_10",
+                "L_co_21",
+                "L_co_32",
+                "L_co_43",
+                "L_co_54",
+                "L_co_65",
+                "L_co_76",
+                "L_co_87",
+                "L_13co",
+                "L_c2",
+                "L_o3_88",
+                "L_o3_5006",
+                "L_o3_4958",
             ],
             "interpolator_path": f"{interpolators_base_fdir}/RegularGridInterpolator_linear_flux.joblib",
             "write_file_name": "line_emissions_smoothingLength_regularGridInterpolator_linear",
+            "interpolator_identifier_name": "flux",
         },
         "abundance": {
             "file_name": "other_properties.csv",
@@ -146,10 +350,11 @@ if __name__ == "__main__":
             ],
             "interpolator_path": f"{interpolators_base_fdir}/RegularGridInterpolator_linear_abundance.joblib",
             "write_file_name": "abundance_smoothingLength_regularGridInterpolator_linear",
+            "interpolator_identifier_name": "abundance",
         }
     }
 
-    base_fdir =  "/scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius",
+    base_fdir =  "/scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius"
     galaxy_name = sys.argv[1]
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
@@ -163,11 +368,13 @@ if __name__ == "__main__":
         "direcotory": "voronoi_1e6",
     }
 
+    # gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}",
+    gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
+
     files_info = {
-        "write_file_name": f"{base_fdir}/{interpolator_type}_regularGridInterpolator_linear_smoothingLength.txt",
-        # "gas_particles_path": f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}",
-        "gas_particles_path": f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test",
-    
+        "write_file_name": f"{gas_particles_path}/{interpolator_type}_regularGridInterpolator_linear_smoothingLength.txt",
+        "gas_particles_path": gas_particles_path,
+        "NearestNDInterpolator_file_path": f"/scratch/m/murray/dtolgay/cloudy_runs/interpolators/NearestNDInterpolator_{interpolators[interpolator_type]['interpolator_identifier_name']}.joblib" 
     }
 
 
