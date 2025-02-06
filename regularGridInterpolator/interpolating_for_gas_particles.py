@@ -35,6 +35,16 @@ def main(files_info, interpolators, interpolator_type):
 
     gas_particles, interpolation_columns_for_gas_particles = take_log_the_interpolation_centers_for_gas_particles(gas_particles, base_interpolation_columns_for_gas_particles)
 
+    # If the radiation field of gas particles are smaller than the boundary of the interpolator, set the radiation field to the minimum value of the interpolator
+    x_min = [grid.min() for grid in interpolator.grid]
+    x_max = [grid.max() for grid in interpolator.grid]
+    # Put the boundaries of the interpolator into a dictionary
+    interpolator_boundaries = dict(zip(interpolation_columns_for_gas_particles, zip(x_min, x_max)))
+    # If the properties of the gas particles are outside of the boundaries of the interpolator, set them to the boundaries of the interpolator
+    for column in interpolation_columns_for_gas_particles:
+        gas_particles[column] = gas_particles[column].clip(lower=interpolator_boundaries[column][0], upper=interpolator_boundaries[column][1])
+
+
     # measure the time it takes to interpolate in minutes
     # Interpolate the gas particles
     gas_particles = interpolate(
@@ -47,6 +57,7 @@ def main(files_info, interpolators, interpolator_type):
     # Interpolate the remaining NaN values with the NearestNDInterpolator
     # If gas particles with target columns have NaN indices interpolate them with the NearestNDInterpolator
     if gas_particles[interpolators[interpolator_type]["target_columns"]].isna().any().any():
+        print("There are NaN values in the target columns. Interpolating with NearestNDInterpolator.")
         gas_particles = interpolate_for_nan_indices(
             data = gas_particles, 
             x_columns = interpolation_columns_for_gas_particles, 
@@ -117,7 +128,7 @@ def interpolate_for_nan_indices(data, x_columns, target_columns, interpolator_fi
 
     # Get the interpolator
     interpolator = joblib.load(interpolator_file_path)
-    
+
     # interpolate 
     interpolated_values = interpolator(centers)
 
@@ -358,18 +369,18 @@ if __name__ == "__main__":
     galaxy_name = sys.argv[1]
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
-    interpolator_type = sys.argv[4]
+    interpolator_type = sys.argv[4] # temperature, line_emissions, abundance
 
     galaxy_info = {
         "base_fdir": base_fdir,
         "galaxy_name": galaxy_name,
         "galaxy_type": galaxy_type,
         "redshift": redshift,
-        "direcotory": "voronoi_1e6",
+        "directory": "voronoi_1e6",
     }
 
-    # gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}",
-    gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
+    gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
+    # gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
 
     files_info = {
         "write_file_name": f"{gas_particles_path}/{interpolator_type}_regularGridInterpolator_linear_smoothingLength.txt",
