@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=20:00:00
-#SBATCH --job-name=abundance_regularGridInterpolator
-#SBATCH --output=abundance_regularGridInterpolator.out
-#SBATCH --error=abundance_regularGridInterpolator.err
+#SBATCH --job-name=line_emissions_regularGridInterpolator
+#SBATCH --output=line_emissions_regularGridInterpolator.out
+#SBATCH --error=line_emissions_regularGridInterpolator.err
 
 
 module purge 
@@ -15,7 +15,7 @@ cd /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files/ana
 
 number_of_background_galaxies=40
 redshift=0.0
-target="abundance" # temperature, line_emissions, abundance
+target="line_emissions" # temperature, line_emissions, abundance
 
 # Function to wait for all background processes to finish
 wait_for_jobs() {
@@ -25,62 +25,62 @@ wait_for_jobs() {
     done
 }
 
+# ####### firebox
+# # Counter for every 10 galaxies
+# counter=0
 
-# Counter for every 10 galaxies
-counter=0
+# for i in {0..1000}; do
+# # for i in {0..51}; do
+#     python interpolating_for_gas_particles.py gal$i firebox $redshift $target &
 
-for i in {0..1000}; do
-# for i in {0..51}; do
-    python interpolating_for_gas_particles.py gal$i firebox $redshift $target &
+#     # Increment counter
+#     ((counter++))
 
-    # Increment counter
-    ((counter++))
+#     if [ $counter -ge $number_of_background_galaxies ]; then
+#         wait_for_jobs
+#         counter=0
+#     fi
+# done
 
-    if [ $counter -ge $number_of_background_galaxies ]; then
-        wait_for_jobs
-        counter=0
-    fi
-done
+# # Wait for the last set of jobs to finish
+# wait_for_jobs
 
-# Wait for the last set of jobs to finish
-wait_for_jobs
+# ####### zoom_in
+# # Counter for every 10 galaxies
+# counter=0
 
-####### zoom_in
-# Counter for every 10 galaxies
-counter=0
-
-# List of galaxy names
-galaxy_names=(
-    "m12b_res7100_md" 
-    "m12c_res7100_md"
-    "m12f_res7100_md"
-    "m12i_res7100_md"
-    "m12m_res7100_md"
-    "m12q_res7100_md"
-    "m12r_res7100_md"
-    "m12w_res7100_md"
-    "m11d_r7100"
-    "m11e_r7100"
-    "m11h_r7100"
-    "m11i_r7100"
-    "m11q_r7100"    
-)
+# # List of galaxy names
+# galaxy_names=(
+#     "m12b_res7100_md" 
+#     "m12c_res7100_md"
+#     "m12f_res7100_md"
+#     "m12i_res7100_md"
+#     "m12m_res7100_md"
+#     "m12q_res7100_md"
+#     "m12r_res7100_md"
+#     "m12w_res7100_md"
+#     "m11d_r7100"
+#     "m11e_r7100"
+#     "m11h_r7100"
+#     "m11i_r7100"
+#     "m11q_r7100"    
+# )
 
 
-for galaxy in "${galaxy_names[@]}"; do
-    python interpolating_for_gas_particles.py $galaxy zoom_in $redshift $target &
+# for galaxy in "${galaxy_names[@]}"; do
+#     python interpolating_for_gas_particles.py $galaxy zoom_in $redshift $target &
 
-    # Increment counter
-    ((counter++))
+#     # Increment counter
+#     ((counter++))
 
-    if [ $counter -ge $number_of_background_galaxies ]; then
-        wait_for_jobs
-        counter=0
-    fi
-done
+#     if [ $counter -ge $number_of_background_galaxies ]; then
+#         wait_for_jobs
+#         counter=0
+#     fi
+# done
 
-# Wait for the last set of jobs to finish
-wait_for_jobs
+# # Wait for the last set of jobs to finish
+# wait_for_jobs
 
 
 ####### particle_split
@@ -90,7 +90,7 @@ galaxy_names=(
 
 
 for galaxy in "${galaxy_names[@]}"; do
-    python hybridInterpolator_otherProperties_smoothingLength.py $galaxy particle_split $redshift $target &
+    python interpolating_for_gas_particles.py $galaxy particle_split $redshift $target &
 
     # Increment counter
     ((counter++))
