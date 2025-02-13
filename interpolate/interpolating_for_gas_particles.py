@@ -8,6 +8,9 @@ import numpy as np # type: ignore
 import joblib # type: ignore
 
 def main(files_info, interpolators, interpolator_name, interpolator_target_type):
+
+    print(f" --------------------------------------- {files_info['galaxy_name']} --------------------------------------- ")
+
     # Check if file exits. If exists, stop running with a message indicating that the file already exists.
     if os.path.exists(files_info["write_file_name"]):
         print(f"{files_info['write_file_name']} already exists. Stopping the run.")
@@ -360,8 +363,8 @@ if __name__ == "__main__":
         # "GaussianProcessRegressor_rational_quadratic",
         # "LinearNDInterpolator",
         # "NearestNDInterpolator",
-        # "RBFInterpolator",
-        "RegularGridInterpolator_linear",
+        "RBFInterpolator",
+        # "RegularGridInterpolator_linear",
     ]
     interpolator_name = interpolator_names[0] 
 
@@ -423,13 +426,14 @@ if __name__ == "__main__":
         "directory": "voronoi_1e6",
     }
 
-    # gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
-    gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
+    gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
+    # gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
 
     files_info = {
         "write_file_name": f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength.txt",
         "gas_particles_path": gas_particles_path,
-        "NearestNDInterpolator_file_path": f"/scratch/m/murray/dtolgay/cloudy_runs/interpolators/NearestNDInterpolator_{interpolators[interpolator_target_type]['interpolator_identifier_name']}.joblib" 
+        "NearestNDInterpolator_file_path": f"/scratch/m/murray/dtolgay/cloudy_runs/interpolators/NearestNDInterpolator_{interpolators[interpolator_target_type]['interpolator_identifier_name']}.joblib", 
+        "galaxy_name": galaxy_name,
     }
 
 
