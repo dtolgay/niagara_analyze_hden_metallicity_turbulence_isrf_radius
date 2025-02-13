@@ -4,13 +4,13 @@ sys.path.append("/home/m/murray/dtolgay/scratch")
 
 from math import floor
 import numpy as np 
-import pandas as pd 
+import pandas as pd # type: ignore 
 import os
 from scipy.spatial import KDTree
 from time import time 
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 
-from tools import constants
+from tools import constants # type: ignore
 
 # Global variables
 epsilon = 1e-30
@@ -28,10 +28,12 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     )
 
     ## Check if file exits. If it exists do not continue running the code, if not run the code.
-    cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
+    # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
     # cloudy_gas_particles_file_directory = f"/home/m/murray/dtolgay/scratch/cloudy_runs/z_3/m12f_res7100_md_test"
+    cloudy_gas_particles_file_directory = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
 
-    write_file_path = f"{cloudy_gas_particles_file_directory}/otherProperties_smoothingLength_nearestNDInterpolator.txt"
+    # write_file_path = f"{cloudy_gas_particles_file_directory}/otherProperties_smoothingLength_nearestNDInterpolator.txt"
+    write_file_path = f"{cloudy_gas_particles_file_directory}/otherProperties_smoothingLength_expected.txt"
 
     print("\n")
     if os.path.isfile(write_file_path):
@@ -57,31 +59,41 @@ def main(galaxy_name, galaxy_type, redshift, max_workers):
     ]
     
     # 1st set of run
-    train_data_base_file_dir_1 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
-    train_data_main_directory_1 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_above_minus_2" 
+    # train_data_base_file_dir_1 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
+    # train_data_main_directory_1 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_above_minus_2" 
 
-    train_data_df_1, properties_column_names_with_log = read_training_data(
-        base_file_dir = train_data_base_file_dir_1, 
-        main_directory = train_data_main_directory_1, 
-        file_name = "other_properties.csv", 
+    # train_data_df_1, properties_column_names_with_log = read_training_data(
+    #     base_file_dir = train_data_base_file_dir_1, 
+    #     main_directory = train_data_main_directory_1, 
+    #     file_name = "other_properties.csv", 
+    #     properties_column_names = properties_column_names,
+    # )    
+
+    # # 2nd set of run
+    # train_data_base_file_dir_2 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
+    # train_data_main_directory_2 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_minus2_minus3point5" 
+
+    # train_data_df_2, properties_column_names_with_log = read_training_data(
+    #     base_file_dir = train_data_base_file_dir_2, 
+    #     main_directory = train_data_main_directory_2, 
+    #     file_name = "other_properties.csv", 
+    #     properties_column_names = properties_column_names,
+    # )    
+
+    train_data_base_file_dir = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
+    train_data_main_directory = "m12i_res7100_md_test"
+    train_data_df, properties_column_names_with_log = read_training_data(
+        base_file_dir = train_data_base_file_dir,
+        main_directory = train_data_main_directory,
+        file_name = "other_properties.csv",
         properties_column_names = properties_column_names,
-    )    
-
-    # 2nd set of run
-    train_data_base_file_dir_2 = "/scratch/m/murray/dtolgay/cloudy_runs/z_0"
-    train_data_main_directory_2 = "cr_1_CO87_CII_H_O3/cr_1_CO87_CII_H_O3_metallicity_minus2_minus3point5" 
-
-    train_data_df_2, properties_column_names_with_log = read_training_data(
-        base_file_dir = train_data_base_file_dir_2, 
-        main_directory = train_data_main_directory_2, 
-        file_name = "other_properties.csv", 
-        properties_column_names = properties_column_names,
-    )    
+    )
 
 
     # Concattanete two dataframes 
-    train_data_df = pd.concat([train_data_df_2, train_data_df_1])
-    train_data_file_paths = [f"{train_data_base_file_dir_1}/{train_data_main_directory_1}", f"{train_data_base_file_dir_2}/{train_data_main_directory_2}"]
+    # train_data_df = pd.concat([train_data_df_2, train_data_df_1])
+    # train_data_file_paths = [f"{train_data_base_file_dir_1}/{train_data_main_directory_1}", f"{train_data_base_file_dir_2}/{train_data_main_directory_2}"]
+    train_data_file_paths = [f"{train_data_base_file_dir}/{train_data_main_directory}", ""]
 
     # train_data_file_paths = [f"{train_data_base_file_dir_1}/{train_data_main_directory_1}"]
     # train_data_df = train_data_df_1
