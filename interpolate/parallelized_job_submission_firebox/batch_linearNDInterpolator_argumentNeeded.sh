@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=80
 #SBATCH --time=23:00:00
-#SBATCH --job-name=firebox_temperature
-#SBATCH --output=firebox_temperature.out
-#SBATCH --error=firebox_temperature.err
+#SBATCH --job-name=firebox_abundance
+#SBATCH --output=firebox_abundance.out
+#SBATCH --error=firebox_abundance.err
 
 
 
@@ -20,8 +20,8 @@ end_idx=$2
 
 
 number_of_background_galaxies=1
-redshift=0.0
-target="temperature" # temperature, line_emissions, abundance
+redshift=3.0
+target="abundance" # temperature, line_emissions, abundance
 
 wait_for_jobs() {
     for job in $(jobs -p)
