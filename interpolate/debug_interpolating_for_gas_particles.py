@@ -9,7 +9,7 @@ import joblib # type: ignore
 
 def main(files_info, interpolators, interpolator_name, interpolator_target_type, isrf_mult_factor):
 
-    print(f" --------------------------------------- {files_info['galaxy_name']} --------------------------------------- ")
+    # print(f" --------------------------------------- {files_info['galaxy_name']} --------------------------------------- ")
 
     # Check if file exits. If exists, stop running with a message indicating that the file already exists.
     if os.path.exists(files_info["write_file_name"]):
@@ -422,6 +422,7 @@ if __name__ == "__main__":
     interpolator_target_type = sys.argv[4] # temperature, line_emissions, abundance
     isrf_mult_factor = float(sys.argv[5]) # TODO:
 
+
     galaxy_info = {
         "base_fdir": base_fdir,
         "galaxy_name": galaxy_name,
@@ -440,5 +441,4 @@ if __name__ == "__main__":
         "galaxy_name": galaxy_name,
     }
 
-
-    main(files_info, interpolators, interpolator_name, interpolator_target_type)
+    main(files_info, interpolators, interpolator_name, interpolator_target_type, isrf_mult_factor)

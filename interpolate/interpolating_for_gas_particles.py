@@ -417,13 +417,16 @@ if __name__ == "__main__":
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
     interpolator_target_type = sys.argv[4] # temperature, line_emissions, abundance
+    # directory = "voronoi_1e6"
+    directory = "seperated_firebox_galaxies"
+
 
     galaxy_info = {
         "base_fdir": base_fdir,
         "galaxy_name": galaxy_name,
         "galaxy_type": galaxy_type,
         "redshift": redshift,
-        "directory": "voronoi_1e6",
+        "directory": directory,
     }
 
     gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
