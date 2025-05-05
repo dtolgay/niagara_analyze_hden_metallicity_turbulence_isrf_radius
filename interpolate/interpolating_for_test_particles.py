@@ -429,8 +429,8 @@ if __name__ == "__main__":
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
     interpolator_target_type = sys.argv[4] # temperature, line_emissions, abundance
-    # directory = "voronoi_1e6"
-    directory = "voronoi_1e5"
+    directory = "voronoi_1e6"
+    # directory = "voronoi_1e5"
     # directory = "seperated_firebox_galaxies"
 
 
@@ -442,11 +442,11 @@ if __name__ == "__main__":
         "directory": directory,
     }
 
-    gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
-    # gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
+    # gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
+    gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
 
     files_info = {
-        "write_file_name": f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength.txt",
+        "write_file_name": f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength_2.txt",
         "gas_particles_path": gas_particles_path,
         "NearestNDInterpolator_file_path": f"/scratch/m/murray/dtolgay/cloudy_runs/interpolators/NearestNDInterpolator_{interpolators[interpolator_target_type]['interpolator_identifier_name']}.joblib", 
         "galaxy_name": galaxy_name,

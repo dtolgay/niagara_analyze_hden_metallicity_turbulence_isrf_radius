@@ -332,20 +332,13 @@ def write_to_a_file(gas_particles, interpolators, interpolator_target_type, file
     elif interpolator_target_type == "abundance":
         header_interpolater_specific = f"""
         Column 19: fh2 [1]
-        Column 20: fCO [1] Σco / ΣH
-        Column 21: fCii [1] ΣCii / ΣH
-        Column 22: fOiii [1] ΣOiii / ΣH
-        Column 23: mco_over_mh2 [1] Σco / ΣH2
-        Column 24: visual_extinction_point [mag]
-        Column 25: visual_extinction_extended [mag]
+        Column 20: fCO [1] Σco / ΣH2
         """
     elif interpolator_target_type == "temperature":
         header_interpolater_specific = f"""
         Column 19: Th2 [K]
         Column 20: Tco [K]
         Column 21: T [K]
-        Column 22: Tcii [K]
-        Column 23: Toiii [K]
         """
 
     header += header_interpolater_specific
@@ -378,7 +371,7 @@ if __name__ == "__main__":
     interpolators = {
         "temperature": {
             "file_name": "temperatures.txt",
-            "target_columns": ["Th2", "Tco", "T", "Tcii", "Toiii"],
+            "target_columns": ["Th2", "Tco", "T"],
             "interpolator_path": f"{interpolators_base_fdir}/{interpolator_name}_temperature.joblib",
             "write_file_name": f"temperature_smoothingLength_{interpolator_name}",
             "interpolator_identifier_name": "temperature",
@@ -412,11 +405,6 @@ if __name__ == "__main__":
             "target_columns": [
                 "fh2",
                 "fCO",
-                "fCii",
-                "fOiii",
-                "mco_over_mh2",
-                "visual_extinction_point",
-                "visual_extinction_extended",
             ],
             "interpolator_path": f"{interpolators_base_fdir}/{interpolator_name}_abundance.joblib",
             "write_file_name": f"abundance_smoothingLength_{interpolator_name}",
@@ -429,9 +417,7 @@ if __name__ == "__main__":
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
     interpolator_target_type = sys.argv[4] # temperature, line_emissions, abundance
-    # directory = "voronoi_1e6"
-    directory = "voronoi_1e5"
-    # directory = "seperated_firebox_galaxies"
+    directory = sys.argv[5] # voronoi_1e6
 
 
     galaxy_info = {

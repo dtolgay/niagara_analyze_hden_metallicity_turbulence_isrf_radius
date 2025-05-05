@@ -15,16 +15,10 @@ cd /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files/ana
 
 number_of_background_galaxies=40
 redshift=0.0
-target="line_emissions" # temperature, line_emissions, abundance
 
-# Function to wait for all background processes to finish
-wait_for_jobs() {
-    for job in $(jobs -p)
-    do
-        wait $job
-    done
-}
+# Start the python job and write the output real time to output file 
+stdbuf -oL -eL python interpolating_for_gas_particles.py gal0 firebox $redshift temperature > temperature_output.log 2>&1 &
+stdbuf -oL -eL python interpolating_for_gas_particles.py gal0 firebox $redshift abundance > abundance_output.log 2>&1 &
+stdbuf -oL -eL python interpolating_for_gas_particles.py gal0 firebox $redshift line_emissions > line_emissions_output.log 2>&1 &
 
-time python interpolating_for_gas_particles.py gal4 firebox 0.0 line_emissions &
-# time python interpolating_for_gas_particles.py gal2 firebox 0.0 line_emissions &
-wait_for_jobs
+wait

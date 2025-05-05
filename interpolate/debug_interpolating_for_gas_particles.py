@@ -7,9 +7,9 @@ import pandas as pd # type: ignore
 import numpy as np # type: ignore
 import joblib # type: ignore
 
-def main(files_info, interpolators, interpolator_name, interpolator_target_type, isrf_mult_factor):
+def main(files_info, interpolators, interpolator_name, interpolator_target_type):
 
-    # print(f" --------------------------------------- {files_info['galaxy_name']} --------------------------------------- ")
+    print(f" --------------------------------------- {files_info['galaxy_name']} --------------------------------------- ")
 
     # Check if file exits. If exists, stop running with a message indicating that the file already exists.
     if os.path.exists(files_info["write_file_name"]):
@@ -18,9 +18,6 @@ def main(files_info, interpolators, interpolator_name, interpolator_target_type,
     
     ### Read the centers
     gas_particles = read_cloudy_gas_particles(files_info)
-
-    # TODO: Delete 
-    gas_particles['isrf'] = gas_particles['isrf'] * isrf_mult_factor 
 
     # Note the gas particles columns before the interpolation
     gas_particles_base_columns = gas_particles.columns # This is the columns before the interpolation
@@ -420,7 +417,9 @@ if __name__ == "__main__":
     galaxy_type = sys.argv[2]
     redshift = sys.argv[3]
     interpolator_target_type = sys.argv[4] # temperature, line_emissions, abundance
-    isrf_mult_factor = float(sys.argv[5]) # TODO:
+    # directory = "voronoi_1e6"
+    directory = "voronoi_1e5"
+    # directory = "seperated_firebox_galaxies"
 
 
     galaxy_info = {
@@ -428,17 +427,18 @@ if __name__ == "__main__":
         "galaxy_name": galaxy_name,
         "galaxy_type": galaxy_type,
         "redshift": redshift,
-        "directory": "voronoi_1e6",
+        "directory": directory,
     }
 
     gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
     # gas_particles_path = f"/scratch/m/murray/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
 
     files_info = {
-        "write_file_name": f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength_isrfMult{isrf_mult_factor}.txt", # TODO: Change the name of the file
+        "write_file_name": f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength.txt",
         "gas_particles_path": gas_particles_path,
         "NearestNDInterpolator_file_path": f"/scratch/m/murray/dtolgay/cloudy_runs/interpolators/NearestNDInterpolator_{interpolators[interpolator_target_type]['interpolator_identifier_name']}.joblib", 
         "galaxy_name": galaxy_name,
     }
 
-    main(files_info, interpolators, interpolator_name, interpolator_target_type, isrf_mult_factor)
+
+    main(files_info, interpolators, interpolator_name, interpolator_target_type)
