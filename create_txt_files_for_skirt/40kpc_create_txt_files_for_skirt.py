@@ -6,6 +6,7 @@ import os
 import sys
 sys.path.append("/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs")
 
+import h5py
 import numpy as np
 from numpy import linalg as LA
 
@@ -35,17 +36,19 @@ def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, s
     redshift    = header_info['redshift']   
     header_time = header_info['time']   
 
+    R_max = 40 # kpc
+
     gas_particles_df, star_particles_df = filter_rotate_galaxy(
         galaxy_name,    
         galaxy_type,    
         header_info, 
         gas_particles, 
-        star_particles,   
+        star_particles,
         snapshot_number, # Not important if the galaxy is firebox    
+        R_max = R_max,   
     )    
 
     #################################### Plot
-    R_max = 20 # kpc
 
     print("Plotting galaxy")
     # Create a figure with two subplots
@@ -79,11 +82,11 @@ def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, s
     plt.tight_layout()
 
     if galaxy_type == "zoom_in_tolgay":
-        plt.savefig(f"/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/zoom_in/z{round(redshift,1)}/images/{galaxy_name}.png")
-        print(f"Figure saved to: /mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/zoom_in/z{round(redshift,1)}/images/{galaxy_name}.png")          
+        plt.savefig(f"/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/zoom_in/z{round(redshift,1)}/images_40kpc_voronoi_1e5/{galaxy_name}.png")
+        print(f"Figure saved to: /mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/zoom_in/z{round(redshift,1)}/images_40kpc_voronoi_1e5/{galaxy_name}.png")          
     else:
-        plt.savefig(f"/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{round(redshift,1)}/images/{galaxy_name}.png")
-        print(f"Figure saved to: /mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{round(redshift,1)}/images/{galaxy_name}.png")    
+        plt.savefig(f"/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{round(redshift,1)}/images_40kpc_voronoi_1e5/{galaxy_name}.png")
+        print(f"Figure saved to: /mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/{galaxy_type}/z{round(redshift,1)}/images_40kpc_voronoi_1e5/{galaxy_name}.png")    
 
 
     """
@@ -183,7 +186,7 @@ def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, s
         gas_particles_meshoid.KernelAverageDoga(f = gas_particles_df['vz'].values)
     ]).T
 
-#############################################################
+    #############################################################
     
     ### Previous method is below
     # # Get the 32 closest neighbour
@@ -212,7 +215,7 @@ def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, s
         
     # v_cm = np.array(v_cm)
 
-#############################################################
+    #############################################################
 
     velocity_difference = gas_particles_df[["vx", "vy", "vz"]].to_numpy() - v_cm
 
@@ -254,7 +257,9 @@ def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, s
 
     ######### Saving to a file
 
-    directory_name = "voronoi_1e6"
+    # directory_name = "voronoi_1e6"
+    directory_name = "40kpc_voronoi_1e5"
+
 
     # Save zoom_in and zoom_in_dtolgay to zoom_in directory
 
@@ -474,6 +479,25 @@ def read_firebox(
     return gas_particles, star_particles, header_info
 
 
+def read_firebox_seperated_galaxies(base_dir, redshift, galaxy_number):
+
+    gas_particles = {}
+    star_particles = {}
+    header_info = {}
+
+    with h5py.File(f'{base_dir}/z{redshift}/gal_{galaxy_number}.hdf5', 'r') as f:
+        for key in f['gas']:
+            gas_particles[key] = f['gas'][key][:]
+        for key in f['star']:
+            star_particles[key] = f['star'][key][:]    
+        for key in f['header']:
+            print(f"key: {key}")
+            dataset = f['header'][key]
+            header_info[key] = dataset[()] if dataset.shape == () else dataset[:]
+
+    return gas_particles, star_particles, header_info
+
+
 def Kernel(q):
     """
     Un-normalized cubic-spline kernel function
@@ -495,12 +519,13 @@ if __name__ == "__main__":
 
     galaxy_name = sys.argv[1] # Not used in Firebox. Give a dummy value
     galaxy_type = sys.argv[2] 
-    file_number = int(sys.argv[3]) # Not used is zoom-in and particle_split. Give a dummy value
+    file_number = int(sys.argv[3]) # Not used is zoom-in and particle_split. Give a dummy value It is from 0 to 999. integer. Which Firebox galaxy...
     redshift = str(sys.argv[4])
 
     # redshift = "2.0"  # Never compare float numbers...
     # Determine the snapshot number 
     if galaxy_type in ["zoom_in", "zoom_in_tolgay", "particle_split"]:
+        # Determine snapshot_number
         if redshift == "0.0":
             snapshot_number = 600     # z = 0.0
         elif redshift == "0.5":
@@ -514,18 +539,34 @@ if __name__ == "__main__":
         else:
             print(f"Exiting... Redshift is wrong. The given galaxy type is {redshift}")
             sys.exit(2)
+        # Determine snap_dir_file_path
+        if galaxy_type == "zoom_in":
+            snap_dir_file_path = f'/mnt/raid-project/murray/FIRE/FIRE_2/Fei_analysis/md/{galaxy_name}/output'
+        elif galaxy_type == "zoom_in_tolgay":
+            snap_dir_file_path = f'/fs/lustre/project/murray/scratch/tolgay/metal_diffusion/{galaxy_name}/output'
+        elif galaxy_type == "particle_split":
+            snap_dir_file_path = f"/fs/lustre/project/murray/FIRE/FIRE_2/{galaxy_name}/output"
+        else:
+            print(f"Exiting... Galaxy type is wrong. The given galaxy type is {galaxy_type}")
+
+    # TODO: Fix the path to file directories
     elif galaxy_type in ["firebox"]:
         if redshift == "0.0":
             snapshot_number = 1200     # z = 0.0
+            # snap_dir_file_path = '/fs/lustre/project/murray/scratch/lliang/FIRE_CO/FIREbox'
+            snap_dir_file_path = '/fs/lustre/project/murray/scratch/tolgay/firebox/FB15N1024/seperated_galaxies'
         elif redshift == "0.5":
             print(f"Exiting... Currently there are no z=0.5 galaxies... {redshift}")
             sys.exit(2)                
         elif redshift == "1.0":
             snapshot_number = 554     # z = 1.0
+            snap_dir_file_path = '/fs/lustre/project/murray/scratch/tolgay/firebox/FB15N1024/seperated_galaxies'
         elif redshift == "2.0":
             snapshot_number = 344     # z = 2.0
+            snap_dir_file_path = '/fs/lustre/project/murray/scratch/tolgay/firebox/FB15N1024/seperated_galaxies'
         elif redshift == "3.0":
             snapshot_number = 240     # z = 3.0
+            # snap_dir_file_path = '/fs/lustre/project/murray/scratch/lliang/FIRE_CO/FIREbox' # TODO. Where is the path?
         else:
             print(f"Exiting... Redshift is wrong. The given galaxy type is {redshift}")
             sys.exit(2)        
@@ -533,28 +574,8 @@ if __name__ == "__main__":
         print(f"Exiting... Galaxy type is wrong. The given galaxy type is {galaxy_type}")
         sys.exit(1)
 
-    if galaxy_type == "zoom_in":
+    if galaxy_type in ["zoom_in", "zoom_in_tolgay", "particle_split"]:
 
-        snap_dir_file_path = f'/mnt/raid-project/murray/FIRE/FIRE_2/Fei_analysis/md/{galaxy_name}/output'
-        snapshot_number = '%03d' %snapshot_number    
-
-        print(f"\n\n------------------ For {galaxy_name} ------------------\n")
-        # Reading particles
-        print('Reading gas particles')
-        gas_particles  = readsnap.readsnap(snap_dir_file_path, snapshot_number, 0, cosmological=1)
-        print('Reading star particles')
-        star_particles = readsnap.readsnap(snap_dir_file_path, snapshot_number, 4, cosmological=1)
-
-        # Reading Header to get scale_factor, hubble_run, and redshift information 
-        print('Reading header')
-        header_info = readsnap.readsnap(snap_dir_file_path, snapshot_number, 0, header_only=1)
-
-        main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number)
-
-
-    elif galaxy_type == "zoom_in_tolgay":
-
-        snap_dir_file_path = f'/fs/lustre/project/murray/scratch/tolgay/metal_diffusion/{galaxy_name}/output'
         snapshot_number = '%03d' %snapshot_number    
 
         print(f"\n\n------------------ For {galaxy_name} ------------------\n")
@@ -575,40 +596,24 @@ if __name__ == "__main__":
 
         galaxy_name = f"gal{file_number}"        
     
-        # snap_dir_file_path = '/fs/lustre/project/murray/scratch/lliang/data/FIREBox/FB15N1024'
-        snap_dir_file_path = '/fs/lustre/project/murray/scratch/lliang/FIRE_CO/FIREbox'
-
         snapshot_number = '%03d' %snapshot_number
         # simulation_name = "FB15N1024"  
         simulation_name = "snapshot" # This is the new file name in Lichen's FIRE_CO directory
 
-        gas_particles, star_particles, header_info = read_firebox(
-            snap_dir_file_path, 
-            snapshot_number,
-            simulation_name,
-            file_number
-        )            
+        # gas_particles, star_particles, header_info = read_firebox(
+        #     snap_dir_file_path, 
+        #     snapshot_number,
+        #     simulation_name,
+        #     file_number
+        # )            
         
-        main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number)        
+        gas_particles, star_particles, header_info = read_firebox_seperated_galaxies(
+            base_dir = snap_dir_file_path,
+            redshift = redshift,
+            galaxy_number = file_number
+        )
 
-
-    elif galaxy_type == "particle_split":
-        snap_dir_file_path = f"/fs/lustre/project/murray/FIRE/FIRE_2/{galaxy_name}/output"
-
-        snapshot_number = '%03d' %snapshot_number    
-
-        print(f"\n\n------------------ For {galaxy_name} ------------------\n")
-        # Reading particles
-        print('Reading gas particles')
-        gas_particles  = readsnap_tripleLatte.readsnap(snap_dir_file_path, snapshot_number, 0, cosmological=1)
-        print('Reading star particles')
-        star_particles = readsnap_tripleLatte.readsnap(snap_dir_file_path, snapshot_number, 4, cosmological=1)
-
-        # Reading Header to get scale_factor, hubble_run, and redshift information 
-        print('Reading header')
-        header_info = readsnap_tripleLatte.readsnap(snap_dir_file_path, snapshot_number, 0, header_only=1)
-
-        main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number)
+        main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number) # TODO: Uncomment this        
 
 
     else: 

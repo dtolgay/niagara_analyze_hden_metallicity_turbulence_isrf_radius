@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A SKIRT parameter file © Astronomical Observatory, Ghent University -->
+<skirt-simulation-hierarchy type="MonteCarloSimulation" format="9" producer="SKIRT v9.0 (git 1c74d64 built on 12/05/2023 at 03:47:01)" time="2023-07-18T15:07:43.920">
+    <MonteCarloSimulation userLevel="Regular" simulationMode="DustEmission" iteratePrimaryEmission="false" iterateSecondaryEmission="false" numPackets="1e7">
+        <random type="Random">
+            <Random seed="0"/>
+        </random>
+        <units type="Units">
+            <ExtragalacticUnits wavelengthOutputStyle="Wavelength" fluxOutputStyle="Wavelength"/>
+        </units>
+        <cosmology type="Cosmology">
+            <FlatUniverseCosmology redshift="0" reducedHubbleConstant="0.675" matterDensityFraction="0.31"/>
+    </cosmology>
+        <sourceSystem type="SourceSystem">
+            <SourceSystem minWavelength="0.03 micron" maxWavelength="10 micron" wavelengths="0.55 micron" sourceBias="0.5">
+                <sources type="Source">
+                    <ParticleSource filename="skirt_star.txt" importVelocity="true" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
+                        <smoothingKernel type="SmoothingKernel">
+                            <CubicSplineSmoothingKernel/>
+                        </smoothingKernel>
+                        <sedFamily type="SEDFamily">
+                            <Starburst99SEDFamily/>
+                        </sedFamily>
+                        <wavelengthBiasDistribution type="WavelengthDistribution">
+                            <LogWavelengthDistribution minWavelength="1e-6 micron" maxWavelength="1e6 micron"/>
+                        </wavelengthBiasDistribution>
+                    </ParticleSource>
+                </sources>
+            </SourceSystem>
+        </sourceSystem>
+        <mediumSystem type="MediumSystem">
+            <MediumSystem>
+                <photonPacketOptions type="PhotonPacketOptions">
+                    <PhotonPacketOptions explicitAbsorption="false" forceScattering="true" minWeightReduction="1e4" minScattEvents="0" pathLengthBias="0.5"/>
+                </photonPacketOptions>
+                <radiationFieldOptions type="RadiationFieldOptions">
+                    <RadiationFieldOptions storeRadiationField="true">
+                        <radiationFieldWLG type="DisjointWavelengthGrid">
+                            <LogWavelengthGrid minWavelength="0.03 micron" maxWavelength="2000 micron" numWavelengths="350"/>
+                        </radiationFieldWLG>
+                    </RadiationFieldOptions>
+                </radiationFieldOptions>
+                <secondaryEmissionOptions type="SecondaryEmissionOptions">
+                    <SecondaryEmissionOptions storeEmissionRadiationField="false" secondaryPacketsMultiplier="1" spatialBias="0.5" sourceBias="0.5"/>
+                </secondaryEmissionOptions>
+                <dustEmissionOptions type="DustEmissionOptions">
+                    <DustEmissionOptions dustEmissionType="Stochastic" includeHeatingByCMB="true" maxFractionOfPrimary="0.01" maxFractionOfPrevious="0.03" sourceWeight="1" wavelengthBias="0.5">
+                        <cellLibrary type="SpatialCellLibrary">
+                            <AllCellsLibrary/>
+                        </cellLibrary>
+                        <dustEmissionWLG type="DisjointWavelengthGrid">
+                            <LogWavelengthGrid minWavelength="3 micron" maxWavelength="2000 micron" numWavelengths="300"/>
+                        </dustEmissionWLG>
+                        <wavelengthBiasDistribution type="WavelengthDistribution">
+                            <LogWavelengthDistribution minWavelength="1e-6 micron" maxWavelength="1e6 micron"/>
+                        </wavelengthBiasDistribution>
+                    </DustEmissionOptions>
+                </dustEmissionOptions>
+                <media type="Medium">
+                    <ParticleMedium filename="skirt_gas.txt" massType="Mass" massFraction="0.4" importMetallicity="true" importTemperature="true" maxTemperature="1e6 K" importVelocity="true" importMagneticField="false" importVariableMixParams="false" useColumns="">
+                        <smoothingKernel type="SmoothingKernel">
+                            <CubicSplineSmoothingKernel/>
+                        </smoothingKernel>
+                        <materialMix type="MaterialMix">
+                            <WeingartnerDraineDustMix environment="MilkyWay" numSilicateSizes="20" numGraphiteSizes="20" numPAHSizes="10"/>
+                        </materialMix>
+                    </ParticleMedium>
+                </media>
+                <samplingOptions type="SamplingOptions">
+                    <SamplingOptions numDensitySamples="100" numPropertySamples="1" aggregateVelocity="Average"/>
+                </samplingOptions>
+                <grid type="SpatialGrid">
+                    <PolicyTreeSpatialGrid minX="-2e4 pc" maxX="2e4 pc" minY="-2e4 pc" maxY="2e4 pc" minZ="-2e4 pc" maxZ="2e4 pc" treeType="OctTree">
+                        <policy type="TreePolicy">
+                            <DensityTreePolicy minLevel="5" maxLevel="10" maxDustFraction="3e-7" maxDustOpticalDepth="1" wavelength="0.55 micron" maxDustDensityDispersion="0" maxElectronFraction="3e-7" maxGasFraction="3e-7"/>
+                        </policy>
+                    </PolicyTreeSpatialGrid>
+                </grid>
+            </MediumSystem>
+        </mediumSystem>
+        <instrumentSystem type="InstrumentSystem">
+            <InstrumentSystem>
+                <defaultWavelengthGrid type="WavelengthGrid">
+                    <LogWavelengthGrid minWavelength="0.03 micron" maxWavelength="2000 micron" numWavelengths="350"/>
+                </defaultWavelengthGrid>
+                <instruments type="Instrument">
+                    <FullInstrument instrumentName="i0" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" fieldOfViewX="4e4 pc" numPixelsX="1024" centerX="0 pc" fieldOfViewY="4e4 pc" numPixelsY="1024" centerY="0 pc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="true">
+                        <wavelengthGrid type="WavelengthGrid">
+                            <LogWavelengthGrid minWavelength="0.03 micron" maxWavelength="2000 micron" numWavelengths="350"/>
+                        </wavelengthGrid>
+                    </FullInstrument>
+                    <FullInstrument instrumentName="i90" distance="10 Mpc" inclination="90 deg" azimuth="0 deg" roll="0 deg" fieldOfViewX="4e4 pc" numPixelsX="1024" centerX="0 pc" fieldOfViewY="4e4 pc" numPixelsY="1024" centerY="0 pc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="true">
+                        <wavelengthGrid type="WavelengthGrid">
+                            <LogWavelengthGrid minWavelength="0.03 micron" maxWavelength="2000 micron" numWavelengths="350"/>
+                        </wavelengthGrid>
+                    </FullInstrument>
+                </instruments>
+            </InstrumentSystem>
+        </instrumentSystem>
+        <probeSystem type="ProbeSystem">
+            <ProbeSystem>
+                <probes type="Probe">
+                    <ConvergenceInfoProbe probeName="convergence_grid" wavelength="0.55 micron" probeAfter="Setup"/>
+                    <LuminosityProbe probeName="source_luminosity">
+                        <wavelengthGrid type="WavelengthGrid">
+                            <LogWavelengthGrid minWavelength="0.03 micron" maxWavelength="2000 micron" numWavelengths="350"/>
+                        </wavelengthGrid>
+                    </LuminosityProbe>
+                    <DensityProbe probeName="source_density" aggregation="Type" probeAfter="Setup">
+                        <form type="Form">
+                            <PerCellForm/>
+                        </form>
+                    </DensityProbe>
+                    <OpacityProbe probeName="grid_opacity" wavelength="0.55 micron" aggregation="System" probeAfter="Setup">
+                        <form type="Form">
+                            <PerCellForm/>
+                        </form>
+                    </OpacityProbe>
+                    <TemperatureProbe probeName="grid_temperature" aggregation="Type" probeAfter="Run">
+                        <form type="Form">
+                            <PerCellForm/>
+                        </form>
+                    </TemperatureProbe>
+                    <VelocityProbe probeName="grid_velocity">
+                        <form type="Form">
+                            <PerCellForm/>
+                        </form>
+                    </VelocityProbe>
+                    <RadiationFieldProbe probeName="grid_radiationField" writeWavelengthGrid="true" probeAfter="Run">
+                        <form type="Form">
+                            <PerCellForm/>
+                        </form>
+                    </RadiationFieldProbe>
+                    <SpatialCellPropertiesProbe probeName="properties_spatialCell" wavelength="0.55 micron" probeAfter="Setup"/>
+                    <SpatialGridPlotProbe probeName="properties_structureGrid"/>
+                    <OpticalMaterialPropertiesProbe probeName="properties_opticalMaterialProperties">
+                        <wavelengthGrid type="WavelengthGrid">
+                            <LogWavelengthGrid minWavelength="0.03 micron" maxWavelength="2000 micron" numWavelengths="350"/>
+                        </wavelengthGrid>
+                    </OpticalMaterialPropertiesProbe>
+                </probes>
+            </ProbeSystem>
+        </probeSystem>
+    </MonteCarloSimulation>
+</skirt-simulation-hierarchy>
