@@ -2,15 +2,60 @@
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
-#SBATCH --time=01:00:00
+#SBATCH --time=10:00:00
 #SBATCH --job-name=run_skirt
 #SBATCH --output=run_skirt.out
 #SBATCH --error=run_skirt.err
 
-# Load modules 
+# modules 
 module purge
-ml gcc/8.3.0 openmpi/4.1.4
 
-cd /gpfs/fs0/scratch/r/rbond/dongwooc/scratch_rwa/doga/runs_hden_radius/firebox/z2.0/gal0/voronoi_1e5
 
-mpirun -np 40 skirt gal0.ski
+
+redshift=2.0
+directory_name=voronoi_1e5
+MAX_JOBS=5
+
+
+# Function to wait for the number of running jobs to drop below a limit
+wait_for_jobs() {
+    local max_jobs=$1
+    while : ; do
+        # Count the number of running jobs
+        local current_jobs=$(jobs -rp | wc -l)
+        # If the number of running jobs is less than the max, break the loop
+        if [[ $current_jobs -lt $max_jobs ]]; then
+            break
+        fi
+        sleep 5
+    done
+}
+
+######################################################################################################
+# firebox
+
+cd $dongwoo_directory
+cd runs_hden_radius/firebox/z${redshift}
+
+# Max number of concurrent jobs
+
+# Loop through directories
+for i in {900..1000}; do
+    dir="gal$i/$directory_name"
+    if [[ -d $dir ]]; then
+        cd $dir
+        
+        # Check for file existence with '_grid_radiationField_wavelengths' in the name
+        if ! ls *_grid_radiationField_wavelengths* 1> /dev/null 2>&1; then
+            skirt "gal$i.ski" &  # Run skirt in the background if no such file exists
+        fi
+        
+        cd - > /dev/null    # Return to the previous directory without printing the path
+
+        # Wait if the number of running jobs reaches MAX_JOBS
+        wait_for_jobs $MAX_JOBS
+    fi
+done
+
+# Wait for all background jobs to finish before exiting the script
+wait

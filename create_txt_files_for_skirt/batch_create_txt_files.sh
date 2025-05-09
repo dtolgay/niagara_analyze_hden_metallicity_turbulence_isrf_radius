@@ -2,7 +2,7 @@
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
-#SBATCH --time=00:16:00
+#SBATCH --time=23:00:00
 #SBATCH --job-name=z2.0_create_txt_files
 #SBATCH --output=z2.0_create_txt_files.out
 #SBATCH --error=z2.0_create_txt_files.err
@@ -21,6 +21,7 @@ source /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files
 
 cd /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/create_txt_files_for_skirt
 
+number_of_background_galaxies=40
 
 # Function to wait for all background processes to finish
 wait_for_jobs() {
@@ -35,7 +36,6 @@ redshift=2.0
 
 # ######################################################## zoom_in_dtolgay
 # counter=0
-# number_of_background_galaxies=40
 
 # # List of galaxy names
 # galaxy_names=(
@@ -103,7 +103,7 @@ redshift=2.0
 # Counter for every $number_of_background_galaxies galaxies
 counter=0
 
-for i in {3..4}
+for i in {1..1000}
 do
     # python create_txt_files_for_skirt_average_sobolev_smoothing_length.py dummy firebox $i &
     python create_txt_files_for_skirt.py dummy firebox $i $redshift &
