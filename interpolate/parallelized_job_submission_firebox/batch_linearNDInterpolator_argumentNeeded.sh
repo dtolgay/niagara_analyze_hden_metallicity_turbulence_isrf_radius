@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=80
 #SBATCH --time=23:00:00
-#SBATCH --job-name=z0_temperature
-#SBATCH --output=z0_temperature.out
-#SBATCH --error=z0_temperature.err
+#SBATCH --job-name=z2_temperature
+#SBATCH --output=z2_temperature.out
+#SBATCH --error=z2_temperature.err
 
 
 
@@ -20,7 +20,7 @@ end_idx=$2
 
 
 number_of_background_galaxies=20
-redshift=0.0
+redshift=2.0
 target="temperature" # temperature, line_emissions, abundance
 
 wait_for_jobs() {
