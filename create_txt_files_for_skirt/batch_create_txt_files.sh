@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=23:00:00
-#SBATCH --job-name=z2.0_create_txt_files
-#SBATCH --output=z2.0_create_txt_files.out
-#SBATCH --error=z2.0_create_txt_files.err
+#SBATCH --job-name=z3.0_create_txt_files
+#SBATCH --output=z3.0_create_txt_files.out
+#SBATCH --error=z3.0_create_txt_files.err
 
 # rrg-rbond-ac 
 # rrg-murray-ac
@@ -32,7 +32,7 @@ wait_for_jobs() {
 }
 
 
-redshift=2.0
+redshift=3.0
 
 # ######################################################## zoom_in_dtolgay
 # counter=0

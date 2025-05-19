@@ -12,7 +12,7 @@ module purge
 
 
 
-redshift=2.0
+redshift=3.0
 directory_name=voronoi_1e5
 MAX_JOBS=5
 

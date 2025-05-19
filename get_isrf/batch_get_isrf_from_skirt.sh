@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=10:00:00
-#SBATCH --job-name=z2_get_isrf
-#SBATCH --output=z2_get_isrf.out
-#SBATCH --error=z2_get_isrf.err
+#SBATCH --job-name=z3_get_isrf
+#SBATCH --output=z3_get_isrf.out
+#SBATCH --error=z3_get_isrf.err
 
 
 module purge 
@@ -22,7 +22,7 @@ wait_for_jobs() {
 }
 
 
-redshift=2.0
+redshift=3.0
 
 ####### firebox
 # Counter for every 10 galaxies

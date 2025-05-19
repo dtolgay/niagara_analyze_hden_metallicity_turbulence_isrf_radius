@@ -551,21 +551,18 @@ if __name__ == "__main__":
 
     # TODO: Fix the path to file directories
     elif galaxy_type in ["firebox"]:
+        snap_dir_file_path = f'/scratch/m/murray/dtolgay/post_processing_fire_outputs/firebox_halo_finder/z{redshift}'
         if redshift == "0.0":
             snapshot_number = 1200     # z = 0.0
-            snap_dir_file_path = '/scratch/m/murray/dtolgay/post_processing_fire_outputs/firebox_halo_finder/z0.0'
         elif redshift == "0.5":
             print(f"Exiting... Currently there are no z=0.5 galaxies... {redshift}")
             sys.exit(2)                
         elif redshift == "1.0":
             snapshot_number = 554     # z = 1.0
-            snap_dir_file_path = '/scratch/m/murray/dtolgay/post_processing_fire_outputs/firebox_halo_finder/z1.0'
         elif redshift == "2.0":
             snapshot_number = 344     # z = 2.0
-            snap_dir_file_path = '/scratch/m/murray/dtolgay/post_processing_fire_outputs/firebox_halo_finder/z2.0'
         elif redshift == "3.0":
             snapshot_number = 240     # z = 3.0
-            # snap_dir_file_path = '/fs/lustre/project/murray/scratch/lliang/FIRE_CO/FIREbox' # TODO. Where is the path?
         else:
             print(f"Exiting... Redshift is wrong. The given galaxy type is {redshift}")
             sys.exit(2)        

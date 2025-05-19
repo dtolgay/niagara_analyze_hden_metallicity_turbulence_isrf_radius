@@ -33,7 +33,7 @@ def main(galaxy_name:str, which_FIRE:str, redshift:float):
     # Define the name of the galaxy and gas particles files.
 
     # directory_path = f"/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/{which_FIRE}/z{redshift}/{galaxy_name}/trial1"   
-    if redshift == "2.0": 
+    if redshift in ["2.0", "3.0"]: 
         directory_path = f"/gpfs/fs0/scratch/r/rbond/dongwooc/scratch_rwa/doga/runs_hden_radius/{which_FIRE}/z{redshift}/{galaxy_name}/{directory_name}"    
     else: 
         sys.exit("Code only works for z=2.0. Implement other redshifts.")
