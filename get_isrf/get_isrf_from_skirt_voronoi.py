@@ -1,6 +1,6 @@
 # Importing modules
 import sys 
-sys.path.append("/scratch/m/murray/dtolgay/")
+# sys.path.append("/scratch/m/murray/dtolgay/")
 
 
 import numpy as np
@@ -10,7 +10,7 @@ import time
 import pandas as pd
 import os
 
-from tools import constants
+from tools_tolgay import constants
 
 
 def main(galaxy_name:str, which_FIRE:str, redshift:float):
@@ -20,7 +20,8 @@ def main(galaxy_name:str, which_FIRE:str, redshift:float):
     # directory_name = "voronoi_1e6_2"
     # directory_name = "zstar_doubled_voronoi_1e6"
     # directory_name = "mstar_doubled_voronoi_1e6"
-    directory_name = "voronoi_1e5"
+    # directory_name = "voronoi_1e5"
+    directory_name = "skirt_new"
     # directory_name = "seperated_firebox_galaxies"
     # directory_name = "40kpc_voronoi_1e5"
     # directory_name = "voronoi_1e6"
@@ -34,7 +35,7 @@ def main(galaxy_name:str, which_FIRE:str, redshift:float):
 
     # directory_path = f"/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/{which_FIRE}/z{redshift}/{galaxy_name}/trial1"   
     if redshift in ["2.0", "3.0"]: 
-        directory_path = f"/gpfs/fs0/scratch/r/rbond/dongwooc/scratch_rwa/doga/runs_hden_radius/{which_FIRE}/z{redshift}/{galaxy_name}/{directory_name}"    
+        directory_path = f"/scratch/dongwooc/scratch_rwa/doga/runs_hden_radius/{which_FIRE}/z{redshift}/{galaxy_name}/{directory_name}"    
     else: 
         sys.exit("Code only works for z=2.0. Implement other redshifts.")
 

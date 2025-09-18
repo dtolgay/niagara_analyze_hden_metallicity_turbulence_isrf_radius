@@ -1,0 +1,151 @@
+#!/bin/bash
+#SBATCH --account=rrg-rbond-ac
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=192
+#SBATCH --time=23:00:00
+#SBATCH --job-name=z3.0_other_properties
+#SBATCH --output=z3.0_other_properties.out
+#SBATCH --error=z3.0_other_properties.err
+
+# rrg-rbond-ac 
+# rrg-murray-ac
+
+# Set NUMEXPR_MAX_THREADS to match the number of processors per node requested
+export NUMEXPR_MAX_THREADS=192
+
+
+# Load the venv 
+module purge 
+source ~/.venv_all/bin/activate
+
+cd /scratch/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/create_txt_files_for_skirt
+
+number_of_background_galaxies=192
+
+# Function to wait for all background processes to finish
+wait_for_jobs() {
+    for job in $(jobs -p)
+    do
+        wait $job
+    done
+}
+
+
+redshift=3.0
+
+
+# ######################################################## zoom_in_dtolgay
+# counter=0
+
+# # List of galaxy names
+# galaxy_names=(
+#     "m11d_r7100"
+#     "m11e_r7100"
+#     "m11h_r7100"
+#     "m11i_r7100"
+#     "m11q_r7100"
+# )
+
+
+# for galaxy in "${galaxy_names[@]}"; do
+#     python create_txt_files_for_skirt_other_properties.py $galaxy zoom_in_tolgay 99 $redshift &
+
+#     # Increment counter
+#     ((counter++))
+
+#     # Every 10th galaxy, wait for all background jobs to finish
+#     if [ $counter -ge $number_of_background_galaxies ]; then
+#         wait_for_jobs
+#         counter=0
+#     fi
+# done
+
+# # Wait for the last set of jobs to finish
+# wait_for_jobs
+
+
+# ######################################################## zoom_in
+# # Counter for every $number_of_background_galaxies galaxies
+# counter=0
+
+# # List of galaxy names
+# galaxy_names=(
+#     "m12b_res7100_md" 
+#     "m12c_res7100_md"
+#     "m12f_res7100_md"
+#     "m12i_res7100_md"
+#     "m12m_res7100_md"
+#     "m12q_res7100_md"
+#     "m12r_res7100_md"
+#     "m12w_res7100_md"
+# )
+
+
+# for galaxy in "${galaxy_names[@]}"; do
+#     python create_txt_files_for_skirt_other_properties.py $galaxy zoom_in 99 $redshift &
+
+#     # Increment counter
+#     ((counter++))
+
+#     # Every 10th galaxy, wait for all background jobs to finish
+#     if [ $counter -ge $number_of_background_galaxies ]; then
+#         wait_for_jobs
+#         counter=0
+#     fi
+# done
+
+# # Wait for the last set of jobs to finish
+# wait_for_jobs
+
+
+
+######################################################## firebox
+# Counter for every $number_of_background_galaxies galaxies
+counter=0
+
+for i in {0..1000}
+do
+    # python create_txt_files_for_skirt_average_sobolev_smoothing_length.py dummy firebox $i &
+    python create_txt_files_for_skirt_other_properties.py dummy firebox $i $redshift &
+    
+
+    # Increment counter
+    ((counter++))
+
+    # Every 10th galaxy, wait for all background jobs to finish
+    if [ $counter -ge $number_of_background_galaxies ]; then
+        wait_for_jobs
+        counter=0
+    fi
+done
+
+# Wait for the last set of jobs to finish
+wait_for_jobs
+
+
+# ######################################################## particle_split
+# # Counter for every $number_of_background_galaxies galaxies
+# counter=0
+
+# # List of galaxy names
+# galaxy_names=(
+#     "m12i_r880_md" 
+# )
+
+
+# for galaxy in "${galaxy_names[@]}"; do
+#     # python create_txt_files_for_skirt_average_sobolev_smoothing_length.py $galaxy particle_split 99 &
+#     python create_txt_files_for_skirt_other_properties.py $galaxy particle_split 99 $redshift &
+
+#     # Increment counter
+#     ((counter++))
+
+#     # Every 10th galaxy, wait for all background jobs to finish
+#     if [ $counter -ge $number_of_background_galaxies ]; then
+#         wait_for_jobs
+#         counter=0
+#     fi
+# done
+
+# # Wait for the last set of jobs to finish
+# wait_for_jobs

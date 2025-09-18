@@ -1,0 +1,13 @@
+/scinet/niagara/software/2019b/opt/base/python/3.11.5/lib/python3.11/site-packages/pandas/core/arraylike.py:396: RuntimeWarning: divide by zero encountered in log10
+  result = getattr(ufunc, method)(*inputs, **kwargs)
+ --------------------------------------- m12i_res7100_md --------------------------------------- 
+
+
+ Interpolator boundaries:
+centers: ['log_metallicity', 'log_hden', 'log_turbulence', 'log_isrf', 'log_smoothing_length']
+x_min: [-2.0, -5.0, -3.0, -5.0, 0.0]
+x_max: [1.0, 4.0, 3.0, 5.0, 3.5]
+
+
+
+File saved to: /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius/zoom_in/z0.0/m12i_res7100_md/voronoi_1e6/temperature_RBFInterpolator_smoothingLength.txt

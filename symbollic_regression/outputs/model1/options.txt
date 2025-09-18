@@ -1,0 +1,12 @@
+niterations: 40
+binary_operators: ['+', '-', '*', '/']
+unary_operators: ['pow_10(x) = 10^x']
+extra_sympy_mappings: {'pow_10': <function main.<locals>.<lambda> at 0x7f2b98e1b0a0>}
+model_selection: best
+elementwise_loss: loss(prediction, target) = (prediction - target)^2
+verbosity: 0
+warm_start: True
+output_directory: /mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/symbolic_regression/outputs/model1
+X columns: ['log_metallicity_gas_half_light_visible_z500pc', 'log_metalicity_star_half_light_visible_z500pc', 'log_sfr_10Myr', 'log_star_mass', 'log_gas_mass', 'log_Pgas_half_light_visible_z500pc', 'log_Pstar_half_light_visible_z500pc', 'log_Ptotal_half_light_visible_z500pc', 'log_halo_mass', 'log_h2_weighted_temperature_mass_average_half_light_visible_z500pc']
+Target column: log_L_co_10
+Redshifts used: [0. 1. 2. 3.]

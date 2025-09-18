@@ -6,6 +6,6 @@
 *.err
 core*
 
-*.venv
+*venv*
 
 **/__pycache__
