@@ -1,11 +1,10 @@
-./cloudy 
-./files_altering_checking
 **/.ipynb_checkpoints/
+**/__pycache__
 
 *.out
 *.err
+*.time
 core*
+*.png
 
 *venv*
-
-**/__pycache__

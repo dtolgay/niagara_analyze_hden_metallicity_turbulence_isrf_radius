@@ -2,17 +2,16 @@
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
-#SBATCH --time=00:20:00
-#SBATCH --job-name=gal600
-#SBATCH --output=gal600.out
-#SBATCH --error=gal600.err
+#SBATCH --time=05:00:00
+#SBATCH --job-name=1e4
+#SBATCH --output=1e4.out
+#SBATCH --error=1e4.err
 
 # cd to working directory 
 cd $SLURM_SUBMIT_DIR
 
 module purge 
-# load the venv 
-source ~/.venv_all/bin/activate
+ml python/3.11.5
 
 # python -u debug_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 line_emissions 2 &
 # python -u debug_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 temperature 2 &
@@ -49,18 +48,9 @@ source ~/.venv_all/bin/activate
 # python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 temperature $directory_name &
 # python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 abundance $directory_name &
 
-# directory_name="voronoi_1e4"
-# python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 line_emissions $directory_name &
-# python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 temperature $directory_name &
-# python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 abundance $directory_name &
-
-
-######## Expected values for test particles #########
-python interpolating_for_gas_particles.py luminosity_from_flux &
-python interpolating_for_gas_particles.py luminosity_from_luminosity_per_mass &
-python interpolating_for_gas_particles.py luminosity_from_luminosity_per_mass_by_dividing_to_4pi &
-python interpolating_for_gas_particles.py temperature &
-python interpolating_for_gas_particles.py abundance &
-
+directory_name="voronoi_1e4"
+python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 line_emissions $directory_name &
+python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 temperature $directory_name &
+python -u testing_skirtNumberTesellations_interpolating_for_gas_particles.py m12i_res7100_md zoom_in 0.0 abundance $directory_name &
 
 wait

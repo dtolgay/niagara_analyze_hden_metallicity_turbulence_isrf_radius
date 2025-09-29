@@ -1,27 +1,27 @@
 #!/bin/bash
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=40
+#SBATCH --ntasks-per-node=192
 #SBATCH --time=23:00:00
-#SBATCH --job-name=z3.0_create_txt_files
-#SBATCH --output=z3.0_create_txt_files.out
-#SBATCH --error=z3.0_create_txt_files.err
+#SBATCH --job-name=z0.0_create_txt_files
+#SBATCH --output=z0.0_create_txt_files.out
+#SBATCH --error=z0.0_create_txt_files.err
 
 # rrg-rbond-ac 
 # rrg-murray-ac
 
 # Set NUMEXPR_MAX_THREADS to match the number of processors per node requested
-export NUMEXPR_MAX_THREADS=80
+export NUMEXPR_MAX_THREADS=192
 
 
 # Load the venv 
 module purge 
-source /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/.venv/bin/activate
+source ~/.venv_all/bin/activate
 
 
-cd /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/create_txt_files_for_skirt
+cd /scratch/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/create_txt_files_for_skirt
 
-number_of_background_galaxies=40
+number_of_background_galaxies=192
 
 # Function to wait for all background processes to finish
 wait_for_jobs() {
@@ -32,7 +32,7 @@ wait_for_jobs() {
 }
 
 
-redshift=3.0
+redshift=0.0
 
 # ######################################################## zoom_in_dtolgay
 # counter=0
@@ -103,7 +103,7 @@ redshift=3.0
 # Counter for every $number_of_background_galaxies galaxies
 counter=0
 
-for i in {1..1000}
+for i in {0..1000}
 do
     # python create_txt_files_for_skirt_average_sobolev_smoothing_length.py dummy firebox $i &
     python create_txt_files_for_skirt.py dummy firebox $i $redshift &

@@ -4,35 +4,32 @@
 # Importing necessary librarires
 import os
 import sys
-sys.path.append("/scratch/m/murray/dtolgay/")
 
-import h5py
+import h5py 
 import numpy as np
 from numpy import linalg as LA
 
-import matplotlib
-import matplotlib.pyplot as plt
+import matplotlib 
+import matplotlib.pyplot as plt 
 # plt.style.use('seaborn-poster')
 
 from math import pi
 
-from tools import functions, readsnap, readsnap_FIREBox, readsnap_tripleLatte, constants  # tools directory is in the appended system directory
-from tools.filter_rotate_galaxy import filter_rotate_galaxy
+from tools_tolgay import functions, readsnap, readsnap_FIREBox, readsnap_tripleLatte, constants  # tools directory is in the appended system directory
+from tools_tolgay.filter_rotate_galaxy import filter_rotate_galaxy
 
-import random 
-import sys # To run the batch script
 
 from time import time
 
-from tools.meshoid import Meshoid
+from tools_tolgay.meshoid import Meshoid
 
 
 
-def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number=None):
+def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number=None, operating_cluster="cita"):
 
     print(f"---------------------------------------------------- {galaxy_name} ----------------------------------------------------")
 
-    write_base_fdir = "/gpfs/fs0/scratch/r/rbond/dongwooc/scratch_rwa/doga/runs_hden_radius"
+    write_base_fdir = "/scratch/dongwooc/scratch_rwa/doga/runs_hden_radius"
 
     print(gas_particles.keys())
 
@@ -47,6 +44,7 @@ def main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, s
         gas_particles, 
         star_particles,   
         snapshot_number, # Not important if the galaxy is firebox    
+        cluster_name=operating_cluster
     )    
 
     #################################### Plot
@@ -521,6 +519,7 @@ if __name__ == "__main__":
     galaxy_type = sys.argv[2] 
     file_number = int(sys.argv[3]) # Not used is zoom-in and particle_split. Give a dummy value It is from 0 to 999. integer. Which Firebox galaxy...
     redshift = str(sys.argv[4])
+    operating_cluster = "trillium"
 
     # redshift = "2.0"  # Never compare float numbers...
     # Determine the snapshot number 
@@ -551,7 +550,7 @@ if __name__ == "__main__":
 
     # TODO: Fix the path to file directories
     elif galaxy_type in ["firebox"]:
-        snap_dir_file_path = f'/scratch/m/murray/dtolgay/post_processing_fire_outputs/firebox_halo_finder/z{redshift}'
+        snap_dir_file_path = f'/scratch/dtolgay/post_processing_fire_outputs/firebox_halo_finder/z{redshift}'
         if redshift == "0.0":
             snapshot_number = 1200     # z = 0.0
         elif redshift == "0.5":
@@ -610,7 +609,7 @@ if __name__ == "__main__":
         )
 
     
-        main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number)    
+        main(gas_particles, star_particles, header_info, galaxy_type, galaxy_name, snapshot_number, operating_cluster)    
 
 
     else: 

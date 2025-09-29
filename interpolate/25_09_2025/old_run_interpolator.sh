@@ -1,22 +1,23 @@
 #!/bin/bash
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=40
+#SBATCH --ntasks-per-node=192
 #SBATCH --time=20:00:00
-#SBATCH --job-name=z3_zoomin_line_emissions
-#SBATCH --output=z3_zoomin_line_emissions.out
-#SBATCH --error=z3_zoomin_line_emissions.err
+#SBATCH --job-name=z3_luminosity_from_luminosity_per_mass_by_dividing_to_4pi
+#SBATCH --output=z3_luminosity_from_luminosity_per_mass_by_dividing_to_4pi.out
+#SBATCH --error=z3_luminosity_from_luminosity_per_mass_by_dividing_to_4pi.err
 
 
 module purge 
-module load python/3.11.5 
+# load the venv 
+source ~/.venv_all/bin/activate
 
 # co to working directory
 cd /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/interpolate
 
-number_of_background_galaxies=7
+number_of_background_galaxies=90
 redshift=3.0
-target="line_emissions" # temperature, line_emissions, abundance
+target="luminosity_from_luminosity_per_mass_by_dividing_to_4pi" # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi temperature, abundance
 
 # Function to wait for all background processes to finish
 wait_for_jobs() {
@@ -26,25 +27,25 @@ wait_for_jobs() {
     done
 }
 
-# ####### firebox
-# # Counter for every 10 galaxies
-# counter=0
+####### firebox
+# Counter for every 10 galaxies
+counter=0
 
-# for i in {822..983}; do
-# # for i in {0..51}; do
-#     python interpolating_for_gas_particles.py gal$i firebox $redshift $target &
+for i in {0..1000}; do
 
-#     # Increment counter
-#     ((counter++))
+    python interpolating_for_gas_particles.py gal$i firebox $redshift $target &
 
-#     if [ $counter -ge $number_of_background_galaxies ]; then
-#         wait_for_jobs
-#         counter=0
-#     fi
-# done
+    # Increment counter
+    ((counter++))
 
-# # Wait for the last set of jobs to finish
-# wait_for_jobs
+    if [ $counter -ge $number_of_background_galaxies ]; then
+        wait_for_jobs
+        counter=0
+    fi
+done
+
+# Wait for the last set of jobs to finish
+wait_for_jobs
 
 ####### zoom_in
 # Counter for every 10 galaxies

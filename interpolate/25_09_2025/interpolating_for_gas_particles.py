@@ -6,9 +6,9 @@ import pandas as pd # type: ignore
 import numpy as np # type: ignore
 import joblib # type: ignore
 
-def main(files_info, interpolators, interpolator_name, interpolator_target_type, isMilvilleDeschenes2017):
+def main(files_info, interpolators, interpolator_name, interpolator_target_type):
 
-    print(f" --------------------------------------- {files_info['galaxy_name']}, for {interpolator_target_type} --------------------------------------- ")
+    print(f" --------------------------------------- {files_info['galaxy_name']} --------------------------------------- ")
 
     # Check if file exits. If exists, stop running with a message indicating that the file already exists.
     if os.path.exists(files_info["write_file_name"]):
@@ -16,13 +16,7 @@ def main(files_info, interpolators, interpolator_name, interpolator_target_type,
         return None
     
     ### Read the centers
-    if isMilvilleDeschenes2017:
-        # Read the particles 
-        gas_particles = pd.read_csv(f'{files_info["gas_particles_path"]}/all_data.txt', sep=',')
-        gas_particles['smoothing_length'] = gas_particles['radius'] # Use radius as smoothing length
-    else:
-        gas_particles = read_cloudy_gas_particles(files_info)
-
+    gas_particles = read_cloudy_gas_particles(files_info)
 
     # Note the gas particles columns before the interpolation
     gas_particles_base_columns = gas_particles.columns # This is the columns before the interpolation
@@ -69,7 +63,7 @@ def main(files_info, interpolators, interpolator_name, interpolator_target_type,
         x_max = interpolator.X_train_.max(axis=0)
 
 
-    elif interpolator_name in ["RBFInterpolator", "RBFInterpolator_N100", "RBFInterpolator_N200", "RBFInterpolator_N300", "RBFInterpolator_N1000", "RBFInterpolator_N10000"]:
+    elif interpolator_name == "RBFInterpolator":
         # TODO: Don't know how to extract the information from the interpolator so set xmin=-inf xmax=inf
         x_min = [-2., -5.,  -3., -5.,  0.]
         x_max = [1.,  4.,  3.,  5.,  3.5,]
@@ -124,7 +118,6 @@ def main(files_info, interpolators, interpolator_name, interpolator_target_type,
             gas_particles = gas_particles, 
             target_columns = interpolators[interpolator_target_type]["target_columns"],
             used_shielding_length_name = used_shielding_length_name,
-            isMilvilleDeschenes2017 = isMilvilleDeschenes2017,
         )
 
     elif interpolator_target_type in ["luminosity_from_luminosity_per_mass", "luminosity_from_luminosity_per_mass_by_dividing_to_4pi"]:
@@ -154,20 +147,15 @@ def main(files_info, interpolators, interpolator_name, interpolator_target_type,
             lines_and_wavelengths = CO_lines_and_wavelengths
         )
     
-    if isMilvilleDeschenes2017:
-        # Write the results to a file
-        gas_particles.to_csv(files_info["write_file_name"], index=False)
-        print(f"File saved to: {files_info['write_file_name']}")
-    else:
-        # Write the results to a file
-        write_to_a_file(
-            gas_particles=gas_particles,
-            interpolators=interpolators, 
-            interpolator_target_type=interpolator_target_type, 
-            files_info=files_info,
-            gas_particles_columns_write_to_file = gas_particles_columns_write_to_file,
-            used_shielding_length_name = used_shielding_length_name,
-        )
+    # Write the results to a file
+    write_to_a_file(
+        gas_particles=gas_particles,
+        interpolators=interpolators, 
+        interpolator_target_type=interpolator_target_type, 
+        files_info=files_info,
+        gas_particles_columns_write_to_file = gas_particles_columns_write_to_file,
+        used_shielding_length_name = used_shielding_length_name,
+    )
 
     return None 
 
@@ -208,7 +196,7 @@ def interpolate_for_nan_indices(data, x_columns, target_columns, interpolator_fi
 
 def interpolate(interpolator_name, interpolator, gas_particles, interpolation_columns_for_gas_particles, target_columns):
 
-    if interpolator_name in ["RegularGridInterpolator_linear", "NearestNDInterpolator", "RBFInterpolator", "RBFInterpolator_N100", "RBFInterpolator_N200", "RBFInterpolator_N300", "RBFInterpolator_N1000", "RBFInterpolator_N10000", "LinearNDInterpolator"]:
+    if interpolator_name in ["RegularGridInterpolator_linear", "NearestNDInterpolator", "RBFInterpolator", "LinearNDInterpolator"]:
         # Interpolate the gas particles
         log_interpolated_values = interpolator(
             gas_particles[interpolation_columns_for_gas_particles].values
@@ -273,14 +261,10 @@ def take_log_the_interpolation_centers_for_gas_particles(gas_particles, interpol
 
     return gas_particles, columns_names
 
-def calculate_line_luminosities_for_interpolated_flux_values(gas_particles, target_columns, used_shielding_length_name, isMilvilleDeschenes2017=False):
+def calculate_line_luminosities_for_interpolated_flux_values(gas_particles, target_columns, used_shielding_length_name):
 
-    if isMilvilleDeschenes2017:
-        gas_particles['area'] = gas_particles['Sn']*(constants.pc2cm**2) # cm2 
-
-    else:
-        # Multiply with the gas particles area to find the luminosity of the line
-        gas_particles['area'] = gas_particles['mass'] * constants.M_sun2gr / (gas_particles['density'] * (gas_particles[used_shielding_length_name] * constants.pc2cm))  # cm2
+    # Multiply with the gas particles area to find the luminosity of the line
+    gas_particles['area'] = gas_particles['mass'] * constants.M_sun2gr / (gas_particles['density'] * (gas_particles[used_shielding_length_name] * constants.pc2cm))  # cm2
 
     # Multiply the interpolated fluxes with the area to find the luminosity of the line
     gas_particles[target_columns] = gas_particles[target_columns].multiply(gas_particles['area'], axis=0)
@@ -408,76 +392,53 @@ def write_to_a_file(gas_particles, interpolators, interpolator_target_type, file
 
 if __name__ == "__main__":
 
-    isMilvilleDeschenes2017 = False 
-
     interpolator_names = [
         # "GaussianProcessRegressor_rbf",
         # "GaussianProcessRegressor_rational_quadratic",
         # "LinearNDInterpolator",
         # "NearestNDInterpolator",
-        "RBFInterpolator_N200",
-        # "RBFInterpolator",
+        "RBFInterpolator",
         # "RegularGridInterpolator_linear",
         # "NearestNDInterpolator",
     ]
     interpolator_name = interpolator_names[0]     
 
-    ############ Interpolating for gas particles #############
-    base_fdir =  "/scratch/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius"
-    galaxy_name = sys.argv[1]
-    galaxy_type = sys.argv[2]
-    redshift = sys.argv[3]
-    interpolator_target_type = sys.argv[4] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi temperature, abundance
-    directory = "voronoi_1e5"
+    # ############ Interpolating for gas particles #############
+    # base_fdir =  "/scratch/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius"
+    # galaxy_name = sys.argv[1]
+    # galaxy_type = sys.argv[2]
+    # redshift = sys.argv[3]
+    # interpolator_target_type = sys.argv[4] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi temperature, abundance
+    # directory = "voronoi_1e5"
 
 
-    galaxy_info = {
-        "base_fdir": base_fdir,
-        "galaxy_name": galaxy_name,
-        "galaxy_type": galaxy_type,
-        "redshift": redshift,
-        "directory": directory,
-    }
+    # galaxy_info = {
+    #     "base_fdir": base_fdir,
+    #     "galaxy_name": galaxy_name,
+    #     "galaxy_type": galaxy_type,
+    #     "redshift": redshift,
+    #     "directory": directory,
+    # }
 
-    gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
-    write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength.txt"
-    interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
-    ###########################################################
-
-    # ############# Interpolating for test particles #############
-    # gas_particles_path = "/scratch/dtolgay/cloudy_runs/z_0/gal600_test"
-    # interpolator_target_type = sys.argv[1] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi, temperature, abundance
-    # galaxy_name = "test-particles"
-
-    # # # Expected values from NearestNDInterpolator
-    # # interpolators_base_fdir = gas_particles_path
-    # # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_smoothingLength_expected.txt"
-
-    # ## Values from other interpolators
+    # gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
+    # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength.txt"
     # interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
-    # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength_interpolation.txt"
-
-    # ##############################################################
-
-
-    # ##############################################################
-    # ### Miville Deschenes et al. 2017 ###
-    # gas_particles_path = "/scratch/dtolgay/cloudy_runs/z_0/miville_deschenes_2017_metallicity1"
-    # interpolator_target_type = sys.argv[1] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi, temperature, abundance
-    # galaxy_name = "miville_deschenes_2017"
-
-    # # Expected values from NearestNDInterpolator
-    # interpolators_base_fdir = gas_particles_path
-    # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_smoothingLength_expected.txt"
-
-    # # ## Values from other interpolators
-    # # interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
-    # # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength_interpolation.txt"
-
-    # isMilvilleDeschenes2017 = True
-
     #############################################################
 
+    ############# Interpolating for test particles #############
+    gas_particles_path = "/scratch/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
+    interpolator_target_type = sys.argv[1] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi, temperature, abundance
+    galaxy_name = "test-particles"
+
+    # # Expected values from NearestNDInterpolator
+    # interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/z_0/m12i_res7100_md_test"
+    # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_smoothingLength_expected.txt"
+
+    ## Values from other interpolators
+    interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
+    write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength_interpolation.txt"
+
+    ##############################################################
 
     interpolators = {
         "temperature": {
@@ -577,4 +538,5 @@ if __name__ == "__main__":
         "galaxy_name": galaxy_name,
     }
 
-    main(files_info, interpolators, interpolator_name, interpolator_target_type, isMilvilleDeschenes2017)
+
+    main(files_info, interpolators, interpolator_name, interpolator_target_type)

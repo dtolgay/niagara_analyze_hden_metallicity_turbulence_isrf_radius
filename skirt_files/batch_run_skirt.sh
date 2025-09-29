@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=40
+#SBATCH --ntasks-per-node=192
 #SBATCH --time=10:00:00
 #SBATCH --job-name=run_skirt
 #SBATCH --output=run_skirt.out
@@ -12,9 +12,9 @@ module purge
 
 
 
-redshift=3.0
+redshift=0.0
 directory_name=voronoi_1e5
-MAX_JOBS=5
+MAX_JOBS=20
 
 
 # Function to wait for the number of running jobs to drop below a limit
@@ -34,13 +34,13 @@ wait_for_jobs() {
 ######################################################################################################
 # firebox
 
-cd $dongwoo_directory
+cd $DONGWOO_DIRECTORY
 cd runs_hden_radius/firebox/z${redshift}
 
 # Max number of concurrent jobs
 
 # Loop through directories
-for i in {900..1000}; do
+for i in {800..1000}; do
     dir="gal$i/$directory_name"
     if [[ -d $dir ]]; then
         cd $dir
