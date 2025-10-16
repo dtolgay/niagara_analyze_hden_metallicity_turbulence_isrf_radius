@@ -414,35 +414,35 @@ if __name__ == "__main__":
         # "GaussianProcessRegressor_rbf",
         # "GaussianProcessRegressor_rational_quadratic",
         # "LinearNDInterpolator",
-        # "NearestNDInterpolator",
-        "RBFInterpolator_N200",
+        "NearestNDInterpolator",
+        # "RBFInterpolator_N200",
         # "RBFInterpolator",
         # "RegularGridInterpolator_linear",
         # "NearestNDInterpolator",
     ]
     interpolator_name = interpolator_names[0]     
 
-    ############ Interpolating for gas particles #############
-    base_fdir =  "/scratch/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius"
-    galaxy_name = sys.argv[1]
-    galaxy_type = sys.argv[2]
-    redshift = sys.argv[3]
-    interpolator_target_type = sys.argv[4] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi temperature, abundance
-    directory = "voronoi_1e5"
+    # ############ Interpolating for gas particles #############
+    # base_fdir =  "/scratch/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius"
+    # galaxy_name = sys.argv[1]
+    # galaxy_type = sys.argv[2]
+    # redshift = sys.argv[3]
+    # interpolator_target_type = sys.argv[4] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi temperature, abundance
+    # directory = "voronoi_1e5"
 
 
-    galaxy_info = {
-        "base_fdir": base_fdir,
-        "galaxy_name": galaxy_name,
-        "galaxy_type": galaxy_type,
-        "redshift": redshift,
-        "directory": directory,
-    }
+    # galaxy_info = {
+    #     "base_fdir": base_fdir,
+    #     "galaxy_name": galaxy_name,
+    #     "galaxy_type": galaxy_type,
+    #     "redshift": redshift,
+    #     "directory": directory,
+    # }
 
-    gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
-    write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength.txt"
-    interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
-    ###########################################################
+    # gas_particles_path = f"{base_fdir}/{galaxy_info['galaxy_type']}/z{galaxy_info['redshift']}/{galaxy_info['galaxy_name']}/{galaxy_info['directory']}"
+    # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength.txt"
+    # interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
+    # ###########################################################
 
     # ############# Interpolating for test particles #############
     # gas_particles_path = "/scratch/dtolgay/cloudy_runs/z_0/gal600_test"
@@ -460,21 +460,24 @@ if __name__ == "__main__":
     # ##############################################################
 
 
-    # ##############################################################
-    # ### Miville Deschenes et al. 2017 ###
-    # gas_particles_path = "/scratch/dtolgay/cloudy_runs/z_0/miville_deschenes_2017_metallicity1"
-    # interpolator_target_type = sys.argv[1] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi, temperature, abundance
-    # galaxy_name = "miville_deschenes_2017"
+    ##############################################################
+    ### Miville Deschenes et al. 2017 ###
+    gas_particles_path = "/scratch/dtolgay/cloudy_runs/z_0/miville_deschenes_2017_runs/miville_deschenes_2017_hdenx20"
+    interpolator_target_type = sys.argv[1] # luminosity_from_flux, luminosity_from_luminosity_per_mass, luminosity_from_luminosity_per_mass_by_dividing_to_4pi, temperature, abundance
+    galaxy_name = "miville_deschenes_2017_hdenx20"
 
-    # # Expected values from NearestNDInterpolator
-    # interpolators_base_fdir = gas_particles_path
-    # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_smoothingLength_expected.txt"
+    # Expected values from NearestNDInterpolator
+    interpolators_base_fdir = gas_particles_path
+    write_file_name = f"{gas_particles_path}/{interpolator_target_type}_smoothingLength_expected.txt"
+    if interpolator_name != "NearestNDInterpolator":
+        print("Expected values are only supported for NearestNDInterpolator for now.")
+        sys.exit(1) 
 
-    # # ## Values from other interpolators
-    # # interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
-    # # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength_interpolation.txt"
+    # ## Values from other interpolators
+    # interpolators_base_fdir = "/scratch/dtolgay/cloudy_runs/interpolators"
+    # write_file_name = f"{gas_particles_path}/{interpolator_target_type}_{interpolator_name}_smoothingLength_interpolation.txt"
 
-    # isMilvilleDeschenes2017 = True
+    isMilvilleDeschenes2017 = True
 
     #############################################################
 

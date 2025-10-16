@@ -2,7 +2,7 @@
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=192
-#SBATCH --time=10:00:00
+#SBATCH --time=23:50:00
 #SBATCH --job-name=run_skirt
 #SBATCH --output=run_skirt.out
 #SBATCH --error=run_skirt.err

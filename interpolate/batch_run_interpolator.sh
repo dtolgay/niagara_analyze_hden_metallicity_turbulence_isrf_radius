@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=192
 #SBATCH --time=10:00:00
-#SBATCH --job-name=z0_luminosity_from_luminosity_per_mass_by_dividing_to_4pi
+#SBATCH --job-name=z3_abundance_interpolate
 #SBATCH --output=%x.out
 #SBATCH --error=%x.err
 
@@ -34,8 +34,8 @@ source ~/.venv_all/bin/activate
 source clean.sh
 
 ### Set up the parameters 
-redshift=0.0
-target="luminosity_from_luminosity_per_mass_by_dividing_to_4pi"
+redshift=3.0
+target="abundance" #luminosity_from_luminosity_per_mass_by_dividing_to_4pi 
 
 outdir="timings_z$redshift"
 # Check if directory exists. If exists delete it and create a new one

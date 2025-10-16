@@ -6,5 +6,7 @@
 *.time
 core*
 *.png
+*.log
+*.tsv
 
 *venv*

@@ -14,7 +14,7 @@ import astropy.units as units
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-def main(redshift, max_workers):
+def main(redshift, max_workers, working_cluster:str = "cita"):
 
     directory_name = "voronoi_1e5"
     all_args = []
@@ -70,10 +70,12 @@ def main(redshift, max_workers):
 
     ####################################### Write to a file
 
-    ## TODO: Save the file 
-    save_dir = "/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/data"
-    file_path = f"{save_dir}/galactic_properties_smoothingLength_RBFInterpolator_z{int(float(redshift))}_using_luminosity_per_mass_values_{directory_name}.csv"
+    if working_cluster == "cita":
+        save_dir = "/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/data"
+    elif working_cluster == "trillium":
+        save_dir = "/scratch/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/data"
 
+    file_path = f"{save_dir}/galactic_properties_smoothingLength_RBFInterpolator_z{int(float(redshift))}_using_luminosity_per_mass_values_{directory_name}.csv"
     # Append the DataFrame to the file
     galaxies.to_csv(file_path, mode='w', sep=',', index=False, float_format='%.5e')
 
@@ -99,9 +101,13 @@ def wrapper(args):
         return None
 
 
-def read_all_files(galaxy_name:str, galaxy_type:str, redshift:str, directory_name:str):
+def read_all_files(galaxy_name:str, galaxy_type:str, redshift:str, directory_name:str, working_cluster:str = "cita"):
 
-    base_fdir = "/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius"
+    if working_cluster == "cita":
+        base_fdir = "/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius"
+    elif working_cluster == "trillium":
+        base_fdir = "/scratch/dtolgay/post_processing_fire_outputs/skirt/runs_hden_radius"
+
     read_dir = f"{base_fdir}/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}"
 
     file_names = {
@@ -118,23 +124,19 @@ def read_all_files(galaxy_name:str, galaxy_type:str, redshift:str, directory_nam
     }
 
     
-    # Read gas particles
-    base_dir="/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius"
-    path_without_file_name = f'{base_dir}/{galaxy_type}/z{redshift}/{galaxy_name}/{directory_name}'
-
     gas, lines = readfiles.read_interpolated_files_usingFilePath2(
-        path = f"{path_without_file_name}/{file_names['interpolated_lines']}",
+        path = f"{read_dir}/{file_names['interpolated_lines']}",
         interpolation_type = "line_emissions",
     )
 
     gas_abundances, file_specific_columns_abundance = readfiles.read_interpolated_files_usingFilePath2(
-        path = f"{path_without_file_name}/{file_names['abundance']}", 
+        path = f"{read_dir}/{file_names['abundance']}", 
         interpolation_type = "abundance",
     )
     gas_abundances = gas_abundances[["index"] + file_specific_columns_abundance]
 
     gas_temperature, file_specific_columns_temperature = readfiles.read_interpolated_files_usingFilePath2(
-        path = f"{path_without_file_name}/{file_names['temperature']}", 
+        path = f"{read_dir}/{file_names['temperature']}", 
         interpolation_type = "temperature",
     )
     gas_temperature = gas_temperature[["index"] + file_specific_columns_temperature]
