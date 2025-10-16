@@ -21,10 +21,11 @@ def main(galaxy_name:str, which_FIRE:str, redshift:float):
     # directory_name = "zstar_doubled_voronoi_1e6"
     # directory_name = "mstar_doubled_voronoi_1e6"
     # directory_name = "voronoi_1e5"
-    directory_name = "skirt_new"
+    # directory_name = "skirt_new"
     # directory_name = "seperated_firebox_galaxies"
     # directory_name = "40kpc_voronoi_1e5"
     # directory_name = "voronoi_1e6"
+    directory_name = "voronoi_1e5"
     # directory_name = "voronoi_3e6"
     # directory_name = "voronoi_3e5"
     # directory_name = "voronoi_1e4"
@@ -34,7 +35,7 @@ def main(galaxy_name:str, which_FIRE:str, redshift:float):
     # Define the name of the galaxy and gas particles files.
 
     # directory_path = f"/mnt/raid-cita/dtolgay/FIRE/post_processing_fire_outputs/skirt/runs_hden_radius/{which_FIRE}/z{redshift}/{galaxy_name}/trial1"   
-    if redshift in ["2.0", "3.0"]: 
+    if redshift in ["0.0", "2.0", "3.0"]: 
         directory_path = f"/scratch/dongwooc/scratch_rwa/doga/runs_hden_radius/{which_FIRE}/z{redshift}/{galaxy_name}/{directory_name}"    
     else: 
         sys.exit("Code only works for z=2.0. Implement other redshifts.")

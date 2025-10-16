@@ -1,17 +1,18 @@
 #!/bin/bash
 #SBATCH --account=rrg-rbond-ac
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=40
+#SBATCH --ntasks-per-node=192
 #SBATCH --time=10:00:00
-#SBATCH --job-name=z3_get_isrf
-#SBATCH --output=z3_get_isrf.out
-#SBATCH --error=z3_get_isrf.err
+#SBATCH --job-name=z0_get_isrf
+#SBATCH --output=z0_get_isrf.out
+#SBATCH --error=z0_get_isrf.err
 
 
 module purge 
-module load python/3.11.5
+# Load the virtual environment 
+source ~/.venv_all/bin/activate
 
-cd /scratch/m/murray/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/get_isrf
+cd /scratch/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden_metallicity_turbulence_isrf_radius/get_isrf
 
 # Function to wait for all background processes to finish
 wait_for_jobs() {
@@ -22,7 +23,7 @@ wait_for_jobs() {
 }
 
 
-redshift=3.0
+redshift=0.0
 
 ####### firebox
 # Counter for every 10 galaxies
@@ -37,7 +38,7 @@ do
     ((counter++))
 
     # Every 10th galaxy, wait for all background jobs to finish
-    if [ $counter -ge 60 ]; then
+    if [ $counter -ge 192 ]; then
         wait_for_jobs
         counter=0
     fi
