@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=192
 #SBATCH --time=10:00:00
-#SBATCH --job-name=z3_abundance_interpolate
+#SBATCH --job-name=z3_temperature_interpolate
 #SBATCH --output=%x.out
 #SBATCH --error=%x.err
 
@@ -14,7 +14,7 @@ cd /scratch/dtolgay/post_processing_fire_outputs/skirt/python_files/analyze_hden
 ## Calculation for parallel njob_parallel 
 nnodes=1
 ncores=192
-njob_parallel=64 # 2, 4, 8, 16, 32, 64, 192
+njob_parallel=32 # 2, 4, 8, 16, 32, 64, 192 -- 64
 cores_per_job=$(echo "$ncores / $njob_parallel" | bc)   # integer truncation
 echo "Each job will use $cores_per_job cores."
 
@@ -35,9 +35,9 @@ source clean.sh
 
 ### Set up the parameters 
 redshift=3.0
-target="abundance" #luminosity_from_luminosity_per_mass_by_dividing_to_4pi 
+target="temperature" #luminosity_from_luminosity_per_mass_by_dividing_to_4pi, abundance, temperature
 
-outdir="timings_z$redshift"
+outdir="timings_z$redshift/$target"
 # Check if directory exists. If exists delete it and create a new one
 [ -d "$outdir" ] && rm -rf "$outdir"
 # Create directory
@@ -66,14 +66,14 @@ zoom_in_galaxies=(
   for i in {0..1000}; do
     echo "gal$i firebox $redshift $target" 
   done
-  # Zoom-in
-  for g in "${zoom_in_galaxies[@]}" ; do
-    echo "$g zoom_in $redshift $target"
-  done
-  # High res zoom-in
-  for g in m12i_r880_md ; do 
-    echo "$g particle_split $redshift $target" 
-  done    
+  # # Zoom-in
+  # for g in "${zoom_in_galaxies[@]}" ; do
+  #   echo "$g zoom_in $redshift $target"
+  # done
+  # # High res zoom-in
+  # for g in m12i_r880_md ; do 
+  #   echo "$g particle_split $redshift $target" 
+  # done    
 } > $outdir/commands.tsv
 
 # Use xargs to run up to $njob_parallel concurrent srun tasks
