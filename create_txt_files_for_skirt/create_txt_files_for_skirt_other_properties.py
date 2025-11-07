@@ -309,17 +309,10 @@ if __name__ == "__main__":
         # )            
         
 
-        if redshift in ["0.5", "1.0", "2.0", "3.0"]:
+        if redshift in ["0.0", "0.5", "1.0", "2.0", "3.0"]:
             gas_particles, star_particles, header_info = read_firebox_seperated_galaxies(
                 base_dir = snap_dir_file_path,
                 galaxy_number = file_number
-            )
-        elif redshift in ["0.0"]: 
-            gas_particles, star_particles, header_info = read_firebox(
-                snap_dir_file_path, 
-                snapshot_number,
-                simulation_name,
-                file_number
             )
         else: 
             print(f"Exiting... Redshift is wrong. The given galaxy type is {redshift}")

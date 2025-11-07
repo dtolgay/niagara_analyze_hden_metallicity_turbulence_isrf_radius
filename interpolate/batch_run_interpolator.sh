@@ -66,39 +66,15 @@ zoom_in_galaxies=(
   for i in {0..1000}; do
     echo "gal$i firebox $redshift $target" 
   done
-  # # Zoom-in
-  # for g in "${zoom_in_galaxies[@]}" ; do
-  #   echo "$g zoom_in $redshift $target"
-  # done
-  # # High res zoom-in
-  # for g in m12i_r880_md ; do 
-  #   echo "$g particle_split $redshift $target" 
-  # done    
+  # Zoom-in
+  for g in "${zoom_in_galaxies[@]}" ; do
+    echo "$g zoom_in $redshift $target"
+  done
+  # High res zoom-in
+  for g in m12i_r880_md ; do 
+    echo "$g particle_split $redshift $target" 
+  done    
 } > $outdir/commands.tsv
-
-# Use xargs to run up to $njob_parallel concurrent srun tasks
-# Each line has two fields: {galaxy} {suite}
-# xargs -a "$outdir/commands.tsv" -n4 -P "$njob_parallel" -I{} bash -lc '
-#   set -- {};
-#   galaxy="$1"; suite="$2"; redshift_in_file="$3"; target_="$4";
-#   srun --exclusive -N1 -n1 -c '"$cores_per_job"' /usr/bin/time -v \
-#     python interpolating_for_gas_particles.py "$galaxy" "$suite" "$redshift_in_file" "$target_" \
-#     > '"$outdir"'/"$galaxy".out 2> '"$outdir"'/"$galaxy".time
-# '
-
-
-# Run: DO NOT use --exclusive; match the cpus-per-task to the allocation
-# -n1 : one task per srun
-# -c  : CPUs per task, matches --cpus-per-task above
-# --kill-on-bad-exit=1 : fail fast if any task fails
-# xargs -a "$outdir/commands.tsv" -n4 -P "$njob_parallel" -I{} bash -lc '
-#   set -- {};
-#   galaxy="$1"; suite="$2"; r="$3"; t="$4";
-#   srun -n1 -c '"$cores_per_job"' --kill-on-bad-exit=1 \
-#     /usr/bin/time -v \
-#     python interpolating_for_gas_particles.py "$galaxy" "$suite" "$r" "$t" \
-#     > '"$outdir"'/"$galaxy".out 2> '"$outdir"'/"$galaxy".time
-# '
 
 
 parallel --jobs "$njob_parallel" --colsep ' ' --joblog "$outdir/parallel.log" \

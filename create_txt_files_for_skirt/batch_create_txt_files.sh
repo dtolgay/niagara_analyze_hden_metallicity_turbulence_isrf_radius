@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=192
 #SBATCH --time=23:00:00
-#SBATCH --job-name=z0.0_create_txt_files
-#SBATCH --output=z0.0_create_txt_files.out
-#SBATCH --error=z0.0_create_txt_files.err
+#SBATCH --job-name=z0.0_create_txt_files_for_skirt_other_propertie
+#SBATCH --output=z0.0_create_txt_files_for_skirt_other_propertie.out
+#SBATCH --error=z0.0_create_txt_files_for_skirt_other_propertie.err
 
 # rrg-rbond-ac 
 # rrg-murray-ac
@@ -48,7 +48,7 @@ redshift=0.0
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python create_txt_files_for_skirt.py $galaxy zoom_in_tolgay 99 $redshift &
+#     python create_txt_files_for_skirt_other_properties.py $galaxy zoom_in_tolgay 99 $redshift &
 
 #     # Increment counter
 #     ((counter++))
@@ -82,7 +82,7 @@ redshift=0.0
 
 
 # for galaxy in "${galaxy_names[@]}"; do
-#     python create_txt_files_for_skirt.py $galaxy zoom_in 99 $redshift &
+#     python create_txt_files_for_skirt_other_properties.py $galaxy zoom_in 99 $redshift &
 
 #     # Increment counter
 #     ((counter++))
@@ -106,7 +106,7 @@ counter=0
 for i in {0..1000}
 do
     # python create_txt_files_for_skirt_average_sobolev_smoothing_length.py dummy firebox $i &
-    python create_txt_files_for_skirt.py dummy firebox $i $redshift &
+    python create_txt_files_for_skirt_other_properties.py dummy firebox $i $redshift &
     
 
     # Increment counter
@@ -135,7 +135,7 @@ wait_for_jobs
 
 # for galaxy in "${galaxy_names[@]}"; do
 #     # python create_txt_files_for_skirt_average_sobolev_smoothing_length.py $galaxy particle_split 99 &
-#     python create_txt_files_for_skirt.py $galaxy particle_split 99 $redshift &
+#     python create_txt_files_for_skirt_other_properties.py $galaxy particle_split 99 $redshift &
 
 #     # Increment counter
 #     ((counter++))
